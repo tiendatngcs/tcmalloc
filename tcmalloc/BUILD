@@ -101,6 +101,26 @@ cc_library(
     alwayslink = 1,
 )
 
+# Generate .so
+cc_binary(
+    name = "libtcmalloc.so",
+    srcs = [
+        "libc_override.h",
+        "libc_override_gcc_and_weak.h",
+        "libc_override_glibc.h",
+        "libc_override_redefine.h",
+        "tcmalloc.cc",
+        "tcmalloc.h",
+    ],
+    copts = ["-g"]+TCMALLOC_DEFAULT_COPTS,
+    linkstatic = 0, # Dynamic linking
+    linkshared= 1, # Craete shared lib
+    visibility = ["//visibility:public"],
+    deps = tcmalloc_deps + [
+        ":common",
+    ],
+)
+
 # Provides tcmalloc always; use per-thread mode.
 cc_library(
     name = "tcmalloc_deprecated_perthread",
