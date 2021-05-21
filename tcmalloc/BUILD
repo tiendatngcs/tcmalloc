@@ -1218,3 +1218,12 @@ create_tcmalloc_benchmark(
         "@com_google_absl//absl/types:optional",
     ],
 )
+
+cc_binary(
+    name = "get_stats",
+    srcs = ["get_stats.cc"],
+    copts = ["-g"],
+    visibility = ["//visibility:public"],
+    malloc = ":tcmalloc",
+    deps = [":malloc_extension"],
+)
