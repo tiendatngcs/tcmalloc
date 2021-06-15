@@ -1,0 +1,1 @@
+rm -fr ./malloc_profile.txt
