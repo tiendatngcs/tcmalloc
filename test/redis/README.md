@@ -50,5 +50,9 @@ echo $LD_LIBRARY_PATH
 ```
 ## 5. Run benchmark script
 ```shell
-./bench.sh
+./bench.sh set
+```
+## 6. Graph stats
+```shell
+python3 profile_graph.py -h
 ```
