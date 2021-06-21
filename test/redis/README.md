@@ -48,11 +48,17 @@ endif
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:absolute/path/to/tcmalloc/bazel-bin/tcmalloc
 echo $LD_LIBRARY_PATH
 ```
-## 5. Run benchmark script
+## 5. Run redis-server
+```shell
+../../../redis/src/redis-server
+```
+
+# Bonus
+## Run benchmark script
 ```shell
 ./bench.sh set
 ```
-## 6. Graph stats
+## Graph stats
 ```shell
-python3 profile_graph.py -h
+python3 mem_graph.py
 ```
