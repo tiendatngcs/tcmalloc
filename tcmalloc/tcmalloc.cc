@@ -69,6 +69,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+// Dat mod
+#include <thread>
 
 #include "absl/base/attributes.h"
 #include "absl/base/config.h"
@@ -121,6 +123,23 @@
 #include <malloc.h>
 #define HAVE_STRUCT_MALLINFO
 #endif
+// Dat mod begins
+// class BackgroundWorker{
+//   std::thread t;
+//   public:
+//     BackgroundWorker();
+//     // BackgroundWorker get_instance();
+// };
+
+// BackgroundWorker::BackgroundWorker(){
+//   t = std::thread(tcmalloc::MallocExtension::ProcessBackgroundActions);
+// }
+
+// BackgroundWorker::get_instance(){
+
+// }
+
+// Dat mod ends
 
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
@@ -2348,6 +2367,10 @@ class TCMallocGuard {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
     TCMallocInternalFree(TCMallocInternalMalloc(1));
+    // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
+    MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
+    // printf(MallocExtension_Internal_GetBackgroundReleaseRate());
+    std::thread(MallocExtension_Internal_ProcessBackgroundActions).detach();
   }
 };
 

@@ -1,4 +1,5 @@
 TEST_NAME=$1
+MEMO=$2
 
 #redis-server is compiled with tcmalloc
 CURRENT_DIR=$(pwd)
@@ -14,7 +15,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TCMALLOC_BIN
 REDIS_SERVER_ID=$!
 #Run profiler
 cd $CURRENT_DIR
-./memprofile.sh $REDIS_SERVER_ID $TEST_NAME&
+./memprofile.sh $REDIS_SERVER_ID $TEST_NAME $MEMO&
 PROFILER_PID=$!
 #Benchmarking
 cd $REDIS_SRC
@@ -31,12 +32,12 @@ do
   ./redis-benchmark -t $TEST_NAME -c 1000 -r 2000000 -d 1000 -n 200000 -q
   echo dbsize:
   ./redis-cli dbsize
-  sleep 120
+  sleep 60
   echo Flushing db
   ./redis-cli flushdb
   echo dbsize:
   ./redis-cli dbsize
-  sleep 10
+  sleep 60
   echo ------------------------------------------------------
 done
 echo terminating memprofiler

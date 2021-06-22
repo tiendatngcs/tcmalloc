@@ -2,11 +2,18 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import sys
 import numpy as np
+import glob
+import os
+
+list_of_files = glob.glob('./smem/*') # * means all if need specific format then *.csv
+latest_file = max(list_of_files, key=os.path.getctime)
+print(latest_file)
 
 
-f = open("./smem/malloc_profile_061821_122558.txt", "r")
-# date = f.readline()
+f = open(latest_file, "r")
+date = f.readline()
 test_name = f.readline()
+memo = f.readline()
 columns = f.readline().split()[1:]
 data = list()
 
@@ -24,6 +31,6 @@ plt.plot(df.USS, label="USS")
 plt.legend()
 plt.xlabel("time (s)")
 plt.ylabel("Mem usage")
-plt.title(test_name)
+plt.title(date + " " + test_name + " " + memo)
 
 plt.show()
