@@ -69,8 +69,11 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
 // Dat mod
 #include <thread>
+#include <iostream>
+#include <fstream>
 
 #include "absl/base/attributes.h"
 #include "absl/base/config.h"
@@ -2349,10 +2352,56 @@ extern "C" size_t TCMallocInternalMallocSize(void* ptr) noexcept {
   return GetSize(ptr);
 }
 
+//Dat mod
+extern char* __progname;
+void background_f(){
+  printf("Function called\n");
+  while(true){
+    sleep(1);
+    printf("__progname\n\t%s\n", __progname);
+  }
+}
+
+void write_stats(){
+  std::cout << "Writing stats to file" << std::endl;
+  int count = 0;
+  while(true){
+    // // Creating a directory
+    // if (_mkdir("Stats", 0777) == -1)
+    //   std::cout << "Directory already exists" << std::endl;
+
+    // else
+    //   std::cout << "Directory created" << std::endl;
+
+    std::ofstream myfile;
+    myfile.open ("Stats/Stats_" + std::to_string(count) + ".txt", std::ios::out | std::ios::trunc );
+    myfile << tcmalloc::MallocExtension::GetStats();
+    myfile.close();
+    count++;
+    sleep(1);
+  }
+}
+// Dat mod ends
+
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
 namespace tcmalloc_internal {
 namespace {
+
+// class Foo{
+//   public:
+//     static void background_func(){
+//       printf("Function called\n");
+//       while(true){
+//         sleep(100);
+//       }
+//     }
+//     Foo() {
+//       if(&background_func != nullptr){
+//         std::thread(background_func).detach();
+//       }
+//     }
+// };
 
 // The constructor allocates an object to ensure that initialization
 // runs before main(), and therefore we do not have a chance to become
@@ -2367,14 +2416,19 @@ class TCMallocGuard {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
     TCMallocInternalFree(TCMallocInternalMalloc(1));
-    // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
-    MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
-    // printf(MallocExtension_Internal_GetBackgroundReleaseRate());
-    std::thread(MallocExtension_Internal_ProcessBackgroundActions).detach();
+    // // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
+    // MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
+    // // printf(MallocExtension_Internal_GetBackgroundReleaseRate());
+    // if (strcmp(__progname, "redis-server") == 0 || strcmp(__progname, "hello_world") == 0){
+    //   std::thread(MallocExtension_Internal_ProcessBackgroundActions).detach();
+    //   std::thread(write_stats).detach();
+    // }
   }
 };
 
 static TCMallocGuard module_enter_exit_hook;
+// static Foo foo;
+
 
 }  // namespace
 }  // namespace tcmalloc_internal

@@ -65,7 +65,7 @@ void Parameters::set_hpaa_subrelease(bool value) {
 
 ABSL_CONST_INIT std::atomic<MallocExtension::BytesPerSecond>
     Parameters::background_release_rate_(MallocExtension::BytesPerSecond{
-        0
+        10 << 20 // Dat mod
     });
 ABSL_CONST_INIT std::atomic<int64_t> Parameters::guarded_sampling_rate_(
     50 * kDefaultProfileSamplingRate);
