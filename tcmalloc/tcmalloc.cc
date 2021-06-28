@@ -2416,6 +2416,7 @@ class TCMallocGuard {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
     TCMallocInternalFree(TCMallocInternalMalloc(1));
+    BackgroundWorker::Init();
     // // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
     // MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
     // // printf(MallocExtension_Internal_GetBackgroundReleaseRate());

@@ -180,14 +180,14 @@ inline bool Static::IsInited() {
 }
 
 //Dat mod
-class BackgroundWorker{
+class BackgroundWorker {
   public:
     static void write_stats_to_file(){
       std::cout << "Thread: write_stats_to_file started." << std::endl;
       int count = 0;
       std::filesystem::create_directory("Stats");
       std::ofstream out_file;
-      while(true){
+      while(true) {
         out_file.open("Stats/Stats_" + std::to_string(count) + ".txt");
         out_file << tcmalloc::MallocExtension::GetStats();
         out_file.close();
@@ -195,11 +195,13 @@ class BackgroundWorker{
         sleep(1);
       }
     }
+
     static void background_subrelease(){
       std::cout << "Thread: background_subrelease started." << std::endl;
       MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
+
     static void Init(){
       std::thread(write_stats_to_file).detach();
       std::thread(background_subrelease).detach();
@@ -209,7 +211,7 @@ class BackgroundWorker{
 inline void Static::InitIfNecessary() {
   if (ABSL_PREDICT_FALSE(!IsInited())) {
     SlowInitIfNecessary();
-    BackgroundWorker::Init();
+    // BackgroundWorker::Init();
   }
 }
 
