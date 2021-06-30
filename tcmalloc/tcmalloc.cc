@@ -2354,54 +2354,44 @@ extern "C" size_t TCMallocInternalMallocSize(void* ptr) noexcept {
 
 //Dat mod
 extern char* __progname;
-void background_f(){
-  printf("Function called\n");
-  while(true){
-    sleep(1);
-    printf("__progname\n\t%s\n", __progname);
-  }
-}
 
-void write_stats(){
-  std::cout << "Writing stats to file" << std::endl;
-  int count = 0;
-  while(true){
-    // // Creating a directory
-    // if (_mkdir("Stats", 0777) == -1)
-    //   std::cout << "Directory already exists" << std::endl;
+//Dat mod
+class BackgroundWorker{
+  public:
+    static void write_stats_to_file(){
+      std::cout << "Thread: write_stats_to_file started." << std::endl;
+      int count = 0;
+      std::filesystem::create_directory("Stats");
+      std::ofstream out_file;
+      while(true){
+        out_file.open("Stats/Stats_" + std::to_string(count) + ".txt");
+        out_file << tcmalloc::MallocExtension::GetStats();
+        out_file.close();
+        count++;
+        sleep(1);
+      }
+    }
+    static void background_subrelease(){
+      std::cout << "Thread: background_subrelease started." << std::endl;
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{10 << 20});
+      MallocExtension_Internal_ProcessBackgroundActions();
+    }
+    static void background_release_to_OS(){
+      std::cout << "Thread: background_release_to_OS started." << std::endl;
 
-    // else
-    //   std::cout << "Directory created" << std::endl;
-
-    std::ofstream myfile;
-    myfile.open ("Stats/Stats_" + std::to_string(count) + ".txt", std::ios::out | std::ios::trunc );
-    myfile << tcmalloc::MallocExtension::GetStats();
-    myfile.close();
-    count++;
-    sleep(1);
-  }
-}
-// Dat mod ends
+    }
+    static void Init(){
+      if (strcmp(__progname, "redis-server" ) == 0 || strcmp(__progname, "hello_world") == 0){
+        std::thread(write_stats_to_file).detach();
+        std::thread(background_subrelease).detach();
+      }
+    }
+};
 
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
 namespace tcmalloc_internal {
 namespace {
-
-// class Foo{
-//   public:
-//     static void background_func(){
-//       printf("Function called\n");
-//       while(true){
-//         sleep(100);
-//       }
-//     }
-//     Foo() {
-//       if(&background_func != nullptr){
-//         std::thread(background_func).detach();
-//       }
-//     }
-// };
 
 // The constructor allocates an object to ensure that initialization
 // runs before main(), and therefore we do not have a chance to become
@@ -2416,13 +2406,7 @@ class TCMallocGuard {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
     TCMallocInternalFree(TCMallocInternalMalloc(1));
-    // // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
-    // MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
-    // // printf(MallocExtension_Internal_GetBackgroundReleaseRate());
-    // if (strcmp(__progname, "redis-server") == 0 || strcmp(__progname, "hello_world") == 0){
-    //   std::thread(MallocExtension_Internal_ProcessBackgroundActions).detach();
-    //   std::thread(write_stats).detach();
-    // }
+    BackgroundWorker::Init();
   }
 };
 
