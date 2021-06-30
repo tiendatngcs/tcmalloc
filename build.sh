@@ -1,3 +1,3 @@
 #!/bin/bash
-
-bazel build //tcmalloc:libtcmalloc.so
+bazel clean
+bazel build //tcmalloc:libtcmalloc.so --verbose_failures

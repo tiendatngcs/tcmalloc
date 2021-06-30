@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstddef>
 #include <unistd.h>
-// #include "malloc_extension.h"
 
 int main() {
     std::cout << "Standard Alignment: " << alignof(std::max_align_t) << '\n';
@@ -18,6 +17,5 @@ int main() {
 
     void *ptr3;
     std::cout << "Sizeof void*: " << sizeof(ptr3) << '\n';
-    // tcmalloc::MallocExtension::GetStats()
     return 0;
 }
