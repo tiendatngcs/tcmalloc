@@ -1030,7 +1030,7 @@ void TcmallocSlab<Shift, NumClasses>::InitCPU(int cpu,
     
     // Minh
     // print out class header
-    printf("class size: %li, ptr: %li\n", cl, GetHeader(cpu, cl));
+    // printf("class size: %li, ptr: %li\n", cl, GetHeader(cpu, cl));
 
     //end
 
