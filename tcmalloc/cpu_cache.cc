@@ -120,6 +120,9 @@ void CPUCache::Activate(ActivationMode mode) {
   const size_t kBytesAvailable = (1 << CPUCache::kPerCpuShift);
   size_t kBytesRequired = sizeof(std::atomic<size_t>) * kNumClasses;
 
+  // Minh's note
+  // check here for the kNumClasses
+  
   for (int cl = 0; cl < kNumClasses; ++cl) {
     const uint16_t mc = MaxCapacity(cl);
     max_capacity_[cl] = mc;
@@ -560,6 +563,16 @@ void CPUCache::Print(Printer *out) const {
   out->printf("------------------------------------------------\n");
 
   const cpu_set_t allowed_cpus = FillActiveCpuMask();
+
+  // Minh code
+  // for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
+  //      ++cpu) {
+  //   for (int cl = 1; cl < kNumClasses; cl++) {
+  //     int temp = freelist_.GetCurrentVirtualCpuUnsafe();
+  //     out->printf("%d", temp);
+  //   }
+  // }
+  // end
 
   for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
        ++cpu) {

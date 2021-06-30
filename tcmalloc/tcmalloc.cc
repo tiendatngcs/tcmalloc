@@ -429,6 +429,13 @@ static void DumpStats(Printer* out, int level) {
           class_count[cl] * Static::sizemap().class_to_size(cl);
 
       cumulative += class_bytes;
+      
+      // Minh
+      // find page id
+      // printf("size class: %d pages: %lu \n", cl, Static::sizemap().class_to_pages(cl));
+
+      // Minh end
+
       // clang-format off
       out->printf(
           "class %3d [ %8zu bytes ] : %8" PRIu64 " objs; %5.1f MiB; %5.1f cum MiB; "
@@ -453,6 +460,7 @@ static void DumpStats(Printer* out, int level) {
       // clang-format on
     }
 
+    // print out CPY Cache info
     if (UsePerCpuCache()) {
       Static::cpu_cache().Print(out);
     }
@@ -2416,7 +2424,10 @@ class TCMallocGuard {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
     TCMallocInternalFree(TCMallocInternalMalloc(1));
+
+    // create thread to check the stats
     BackgroundWorker::Init();
+
     // // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
     // MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
     // // printf(MallocExtension_Internal_GetBackgroundReleaseRate());

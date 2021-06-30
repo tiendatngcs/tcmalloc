@@ -1022,6 +1022,13 @@ void TcmallocSlab<Shift, NumClasses>::InitCPU(int cpu,
   // TODO(ckennelly): Consolidate this logic with Drain.
   // Phase 1: verify no header is locked
   for (size_t cl = 0; cl < NumClasses; ++cl) {
+    
+    // Minh
+    // print out class header
+    printf("class size: %li, ptr: %li\n", cl, GetHeader(cpu, cl));
+
+    //end
+
     Header hdr = LoadHeader(GetHeader(cpu, cl));
     CHECK_CONDITION(!hdr.IsLocked());
   }
