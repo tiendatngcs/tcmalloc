@@ -2417,17 +2417,6 @@ class TCMallocGuard {
 
     // create thread to check the stats
     BackgroundWorker::Init();
-<<<<<<< HEAD
-
-    // // printf((int)MallocExtension_Internal_GetBackgroundReleaseRate());
-    // MallocExtension_Internal_SetBackgroundReleaseRate(MallocExtension::BytesPerSecond{10 << 20});
-    // // printf(MallocExtension_Internal_GetBackgroundReleaseRate());
-    // if (strcmp(__progname, "redis-server") == 0 || strcmp(__progname, "hello_world") == 0){
-    //   std::thread(MallocExtension_Internal_ProcessBackgroundActions).detach();
-    //   std::thread(write_stats).detach();
-    // }
-=======
->>>>>>> 256faac0861ec0281b02504277779758aac1e137
   }
 };
 
