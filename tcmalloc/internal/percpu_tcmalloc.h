@@ -20,6 +20,9 @@
 #include <atomic>
 #include <cstring>
 
+//Dat mod
+#include <iostream>
+
 #include "absl/base/dynamic_annotations.h"
 #include "absl/base/internal/sysinfo.h"
 #include "tcmalloc/internal/mincore.h"
@@ -140,6 +143,8 @@ class TcmallocSlab {
   typedef void (*DrainHandler)(void* drain_ctx, size_t cl, void** batch,
                                size_t n, size_t cap);
   void Drain(int cpu, void* drain_ctx, DrainHandler f);
+
+  int GetNumHugepageStranded(int cpu) const;
 
   PerCPUMetadataState MetadataMemoryUsage() const;
 
@@ -1197,6 +1202,23 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
     hdr.end_copy = begin[cl];
     StoreHeader(hdrp, hdr);
   }
+}
+
+template <size_t Shift, size_t NumClasses>
+int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const{
+  int count = 0;
+  Header hdr;
+  for (size_t cl = 0; cl < NumClasses; ++cl){
+    hdr = LoadHeader(GetHeader(cpu, cl));
+    if (hdr.begin != hdr.current){
+      std::cout << "Class " << cl << std::endl;
+      std::cout << "Header begin " << hdr.begin << std::endl;
+      std::cout << "Header current " << hdr.current << std::endl;
+      std::cout << "Header end " << hdr.end << std::endl;
+      std::cout << "------------------------" << std::endl;
+    }
+  }
+  return 0;
 }
 
 template <size_t Shift, size_t NumClasses>
