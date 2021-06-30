@@ -2,4 +2,4 @@
 bazel-*
 
 # redis
-redis-6.2.1
+.vscode
