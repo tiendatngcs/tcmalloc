@@ -574,6 +574,9 @@ void CPUCache::Print(Printer *out) const {
                 cpu, rbytes, rbytes / MiB, unallocated,
                 CPU_ISSET(cpu, &allowed_cpus) ? " active" : "",
                 populated ? " populated" : "");
+    //Dat mod
+    out->printf("NUmber of stranded Hugepage in cpu cache %3d: %3d\n",
+                cpu, freelist_.GetNumHugepageStranded(cpu));
   }
 }
 
