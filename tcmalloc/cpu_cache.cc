@@ -561,19 +561,7 @@ void CPUCache::Print(Printer *out) const {
   out->printf("Bytes in per-CPU caches (per cpu limit: %" PRIu64 " bytes)\n",
               Static::cpu_cache().CacheLimit());
   out->printf("------------------------------------------------\n");
-
   const cpu_set_t allowed_cpus = FillActiveCpuMask();
-
-  // Minh code
-  // for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
-  //      ++cpu) {
-  //   for (int cl = 1; cl < kNumClasses; cl++) {
-  //     int temp = freelist_.GetCurrentVirtualCpuUnsafe();
-  //     out->printf("%d", temp);
-  //   }
-  // }
-  // end
-
   for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
        ++cpu) {
     static constexpr double MiB = 1048576.0;
@@ -588,7 +576,7 @@ void CPUCache::Print(Printer *out) const {
                 CPU_ISSET(cpu, &allowed_cpus) ? " active" : "",
                 populated ? " populated" : "");
     //Dat mod
-    out->printf("NUmber of stranded Hugepage in cpu cache %3d: %3d\n",
+    out->printf("cpu %3d: %12d stranded hugepage \n\n",
                 cpu, freelist_.GetNumHugepageStranded(cpu));
   }
 }

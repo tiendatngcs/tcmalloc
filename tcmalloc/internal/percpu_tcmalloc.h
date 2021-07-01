@@ -28,6 +28,12 @@
 #include "tcmalloc/internal/mincore.h"
 #include "tcmalloc/internal/percpu.h"
 
+// Minh
+#include "tcmalloc/static_vars.h"
+#include "tcmalloc/pagemap.h"
+#include <vector>
+
+
 #if defined(TCMALLOC_PERCPU_USE_RSEQ)
 #if !defined(__clang__)
 #define TCMALLOC_PERCPU_USE_RSEQ_ASM_GOTO 1
@@ -1031,7 +1037,6 @@ void TcmallocSlab<Shift, NumClasses>::InitCPU(int cpu,
     // Minh
     // print out class header
     // printf("class size: %li, ptr: %li\n", cl, GetHeader(cpu, cl));
-
     //end
 
     Header hdr = LoadHeader(GetHeader(cpu, cl));
@@ -1204,21 +1209,53 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
   }
 }
 
+
+// Dat mod
 template <size_t Shift, size_t NumClasses>
-int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const{
+int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
   int count = 0;
+  std::vector<void*> strandedPointerArrayPointer;
   Header hdr;
-  for (size_t cl = 0; cl < NumClasses; ++cl){
+  for (size_t cl = 0; cl < NumClasses; ++cl) {
     hdr = LoadHeader(GetHeader(cpu, cl));
     if (hdr.begin != hdr.current){
-      std::cout << "Class " << cl << std::endl;
-      std::cout << "Header begin " << hdr.begin << std::endl;
-      std::cout << "Header current " << hdr.current << std::endl;
-      std::cout << "Header end " << hdr.end << std::endl;
-      std::cout << "------------------------" << std::endl;
+      // std::cout << "Class " << cl << std::endl;
+      // std::cout << "Header begin " << hdr.begin << std::endl;
+      // std::cout << "Header current " << hdr.current << std::endl;
+      // std::cout << "Header end " << hdr.end << std::endl;
+
+      // Minh
+      for(uint16_t idx = hdr.begin; idx <= hdr.current; idx++) {
+        void* ptr = slabs_->mem[idx];
+        const PageId pid = PageIdContaining(ptr);
+        if(ptr) {
+          void* ptrHugePage = Static::pagemap().GetHugepage(pid);
+          // check for duplication before add pointer
+          bool noDup = true;
+          for(void* x : strandedPointerArrayPointer) {
+            if(x == ptrHugePage)
+              continue;
+            else {
+              // printf("Dup detected\n");
+              noDup = false;
+              break;
+            }
+          }
+          if(noDup)
+            strandedPointerArrayPointer.push_back(ptrHugePage);
+        }
+      }
+      // end
+
+      // std::cout << "\n------------------------" << std::endl;
     }
   }
-  return 0;
+  if(strandedPointerArrayPointer.size()) {
+    // for (void* x : strandedPointerArrayPointer)
+    //   std::cout << x << " ";
+    printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointerArrayPointer.size());
+  }
+  return strandedPointerArrayPointer.size();
 }
 
 template <size_t Shift, size_t NumClasses>
