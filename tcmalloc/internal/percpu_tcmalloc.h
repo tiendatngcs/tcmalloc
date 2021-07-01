@@ -31,7 +31,7 @@
 // Minh
 #include "tcmalloc/static_vars.h"
 #include "tcmalloc/pagemap.h"
-#include <vector>
+#include <set>
 
 
 #if defined(TCMALLOC_PERCPU_USE_RSEQ)
@@ -150,7 +150,7 @@ class TcmallocSlab {
                                size_t n, size_t cap);
   void Drain(int cpu, void* drain_ctx, DrainHandler f);
 
-  int GetNumHugepageStranded(int cpu) const;
+  std::set<void*> GetNumHugepageStranded(int cpu) const;
 
   PerCPUMetadataState MetadataMemoryUsage() const;
 
@@ -1033,12 +1033,6 @@ void TcmallocSlab<Shift, NumClasses>::InitCPU(int cpu,
   // TODO(ckennelly): Consolidate this logic with Drain.
   // Phase 1: verify no header is locked
   for (size_t cl = 0; cl < NumClasses; ++cl) {
-    
-    // Minh
-    // print out class header
-    // printf("class size: %li, ptr: %li\n", cl, GetHeader(cpu, cl));
-    //end
-
     Header hdr = LoadHeader(GetHeader(cpu, cl));
     CHECK_CONDITION(!hdr.IsLocked());
   }
@@ -1212,9 +1206,9 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
 
 // Dat mod
 template <size_t Shift, size_t NumClasses>
-int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
+std::set<void*> TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
   int count = 0;
-  std::vector<void*> strandedPointerArrayPointer;
+  std::set<void*> strandedPointer;
   Header hdr;
   for (size_t cl = 0; cl < NumClasses; ++cl) {
     hdr = LoadHeader(GetHeader(cpu, cl));
@@ -1223,6 +1217,7 @@ int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
       // std::cout << "Header begin " << hdr.begin << std::endl;
       // std::cout << "Header current " << hdr.current << std::endl;
       // std::cout << "Header end " << hdr.end << std::endl;
+      // std::cout << "\n------------------------" << std::endl;
 
       // Minh
       for(uint16_t idx = hdr.begin; idx <= hdr.current; idx++) {
@@ -1230,32 +1225,17 @@ int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
         const PageId pid = PageIdContaining(ptr);
         if(ptr) {
           void* ptrHugePage = Static::pagemap().GetHugepage(pid);
-          // check for duplication before add pointer
-          bool noDup = true;
-          for(void* x : strandedPointerArrayPointer) {
-            if(x == ptrHugePage)
-              continue;
-            else {
-              // printf("Dup detected\n");
-              noDup = false;
-              break;
-            }
-          }
-          if(noDup)
-            strandedPointerArrayPointer.push_back(ptrHugePage);
+          strandedPointer.insert(ptrHugePage);
         }
       }
-      // end
-
-      // std::cout << "\n------------------------" << std::endl;
     }
   }
-  if(strandedPointerArrayPointer.size()) {
-    // for (void* x : strandedPointerArrayPointer)
+  if(strandedPointer.size()) {
+    // for (void* x : strandedPointer)
     //   std::cout << x << " ";
-    printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointerArrayPointer.size());
+    printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
   }
-  return strandedPointerArrayPointer.size();
+  return strandedPointer;
 }
 
 template <size_t Shift, size_t NumClasses>

@@ -429,12 +429,6 @@ static void DumpStats(Printer* out, int level) {
           class_count[cl] * Static::sizemap().class_to_size(cl);
 
       cumulative += class_bytes;
-      
-      // Minh
-      // find page id
-      // printf("size class: %d pages: %lu \n", cl, Static::sizemap().class_to_pages(cl));
-
-      // Minh end
 
       // clang-format off
       out->printf(
@@ -2369,6 +2363,8 @@ class BackgroundWorker{
     static void write_stats_to_file(){
       std::cout << "Thread: write_stats_to_file started." << std::endl;
       int count = 0;
+      if(std::filesystem::is_directory("Stats"))
+        std::filesystem::remove_all("Stats");
       std::filesystem::create_directory("Stats");
       std::ofstream out_file;
       while(true){
