@@ -429,6 +429,7 @@ static void DumpStats(Printer* out, int level) {
           class_count[cl] * Static::sizemap().class_to_size(cl);
 
       cumulative += class_bytes;
+
       // clang-format off
       out->printf(
           "class %3d [ %8zu bytes ] : %8" PRIu64 " objs; %5.1f MiB; %5.1f cum MiB; "
@@ -453,6 +454,7 @@ static void DumpStats(Printer* out, int level) {
       // clang-format on
     }
 
+    // print out CPY Cache info
     if (UsePerCpuCache()) {
       Static::cpu_cache().Print(out);
     }
@@ -2361,6 +2363,8 @@ class BackgroundWorker{
     static void write_stats_to_file(){
       std::cout << "Thread: write_stats_to_file started." << std::endl;
       int count = 0;
+      if(std::filesystem::is_directory("Stats"))
+        std::filesystem::remove_all("Stats");
       std::filesystem::create_directory("Stats");
       std::ofstream out_file;
       while(true){
@@ -2406,6 +2410,8 @@ class TCMallocGuard {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
     TCMallocInternalFree(TCMallocInternalMalloc(1));
+
+    // create thread to check the stats
     BackgroundWorker::Init();
   }
 };

@@ -20,6 +20,9 @@
 #include <algorithm>
 #include <atomic>
 
+// Minh
+#include <set>
+
 #include "absl/base/dynamic_annotations.h"
 #include "absl/base/internal/spinlock.h"
 #include "absl/base/internal/sysinfo.h"
@@ -119,7 +122,7 @@ void CPUCache::Activate(ActivationMode mode) {
 
   const size_t kBytesAvailable = (1 << CPUCache::kPerCpuShift);
   size_t kBytesRequired = sizeof(std::atomic<size_t>) * kNumClasses;
-
+  
   for (int cl = 0; cl < kNumClasses; ++cl) {
     const uint16_t mc = MaxCapacity(cl);
     max_capacity_[cl] = mc;
@@ -558,8 +561,11 @@ void CPUCache::Print(Printer *out) const {
   out->printf("Bytes in per-CPU caches (per cpu limit: %" PRIu64 " bytes)\n",
               Static::cpu_cache().CacheLimit());
   out->printf("------------------------------------------------\n");
-
   const cpu_set_t allowed_cpus = FillActiveCpuMask();
+  // Minh
+  // keep track of the stranded huge page in the cpu caches
+  std::set<void*> strandedHugePagePointer;
+  // end
 
   for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
        ++cpu) {
@@ -574,10 +580,19 @@ void CPUCache::Print(Printer *out) const {
                 cpu, rbytes, rbytes / MiB, unallocated,
                 CPU_ISSET(cpu, &allowed_cpus) ? " active" : "",
                 populated ? " populated" : "");
+    // Minh
+    std::set<void*> tempStrandedPointer;
+    tempStrandedPointer = freelist_.GetNumHugepageStranded(cpu);
     //Dat mod
-    out->printf("NUmber of stranded Hugepage in cpu cache %3d: %3d\n",
-                cpu, freelist_.GetNumHugepageStranded(cpu));
+    out->printf("cpu %3d: %12d stranded hugepage \n\n", cpu, tempStrandedPointer.size());
+    if(!strandedHugePagePointer.size())
+      strandedHugePagePointer = tempStrandedPointer;
+    else {
+      for (void* x : tempStrandedPointer)
+        strandedHugePagePointer.insert(x);
+    }
   }
+  out->printf("Total %3d stranded hugepage between all cpu caches.\n\n", strandedHugePagePointer.size());
 }
 
 void CPUCache::PrintInPbtxt(PbtxtRegion *region) const {

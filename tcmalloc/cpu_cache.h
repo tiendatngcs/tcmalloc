@@ -20,6 +20,9 @@
 
 #include <atomic>
 
+// Minh
+#include <set>
+
 #include "absl/base/attributes.h"
 #include "absl/base/call_once.h"
 #include "absl/base/internal/spinlock.h"

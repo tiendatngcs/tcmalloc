@@ -28,8 +28,16 @@
 #include "tcmalloc/internal/mincore.h"
 #include "tcmalloc/internal/percpu.h"
 
+<<<<<<< HEAD
 //Dat mod
 #include "tcmalloc/huge_pages.h"
+=======
+// Minh
+#include "tcmalloc/static_vars.h"
+#include "tcmalloc/pagemap.h"
+#include <set>
+
+>>>>>>> e7cedecfd22f6593f23fb6a4193d82a450c3a182
 
 #if defined(TCMALLOC_PERCPU_USE_RSEQ)
 #if !defined(__clang__)
@@ -147,7 +155,7 @@ class TcmallocSlab {
                                size_t n, size_t cap);
   void Drain(int cpu, void* drain_ctx, DrainHandler f);
 
-  int GetNumHugepageStranded(int cpu) const;
+  std::set<void*> GetNumHugepageStranded(int cpu) const;
 
   PerCPUMetadataState MetadataMemoryUsage() const;
 
@@ -1202,28 +1210,36 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
 
 // Dat mod
 template <size_t Shift, size_t NumClasses>
-int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const{
+std::set<void*> TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
   int count = 0;
+  std::set<void*> strandedPointer;
   Header hdr;
-  for (size_t cl = 0; cl < NumClasses; ++cl){
+  for (size_t cl = 0; cl < NumClasses; ++cl) {
     hdr = LoadHeader(GetHeader(cpu, cl));
     if (hdr.begin != hdr.current){
-      std::cout << "Class " << cl << std::endl;
-      std::cout << "Size of slabs " << sizeof((*slabs_).mem)/sizeof((*slabs_).mem[0]) << std::endl;
-      for (uint16_t index = hdr.begin; index < hdr.current; ++index){
-        if (slabs_->mem[index] != 0){
-          std::cout << "Pointer to Obj " << slabs_->mem[index] << std::endl;
-        }
-
-      }
+      // std::cout << "Class " << cl << std::endl;
       // std::cout << "Header begin " << hdr.begin << std::endl;
-      // std::cout << "Header next to begin " << hdr.begin+1 << std::endl;
       // std::cout << "Header current " << hdr.current << std::endl;
       // std::cout << "Header end " << hdr.end << std::endl;
-      std::cout << "------------------------" << std::endl;
+      // std::cout << "\n------------------------" << std::endl;
+
+      // Minh
+      for(uint16_t idx = hdr.begin; idx <= hdr.current; idx++) {
+        void* ptr = slabs_->mem[idx];
+        const PageId pid = PageIdContaining(ptr);
+        if(ptr) {
+          void* ptrHugePage = Static::pagemap().GetHugepage(pid);
+          strandedPointer.insert(ptrHugePage);
+        }
+      }
     }
   }
-  return 0;
+  if(strandedPointer.size()) {
+    // for (void* x : strandedPointer)
+    //   std::cout << x << " ";
+    printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
+  }
+  return strandedPointer;
 }
 
 template <size_t Shift, size_t NumClasses>
