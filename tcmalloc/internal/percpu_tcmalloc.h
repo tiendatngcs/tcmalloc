@@ -28,6 +28,9 @@
 #include "tcmalloc/internal/mincore.h"
 #include "tcmalloc/internal/percpu.h"
 
+//Dat mod
+#include "tcmalloc/huge_pages.h"
+
 #if defined(TCMALLOC_PERCPU_USE_RSEQ)
 #if !defined(__clang__)
 #define TCMALLOC_PERCPU_USE_RSEQ_ASM_GOTO 1
@@ -1197,6 +1200,7 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
   }
 }
 
+// Dat mod
 template <size_t Shift, size_t NumClasses>
 int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const{
   int count = 0;
@@ -1205,9 +1209,17 @@ int TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const{
     hdr = LoadHeader(GetHeader(cpu, cl));
     if (hdr.begin != hdr.current){
       std::cout << "Class " << cl << std::endl;
-      std::cout << "Header begin " << hdr.begin << std::endl;
-      std::cout << "Header current " << hdr.current << std::endl;
-      std::cout << "Header end " << hdr.end << std::endl;
+      std::cout << "Size of slabs " << sizeof((*slabs_).mem)/sizeof((*slabs_).mem[0]) << std::endl;
+      for (uint16_t index = hdr.begin; index < hdr.current; ++index){
+        if (slabs_->mem[index] != 0){
+          std::cout << "Pointer to Obj " << slabs_->mem[index] << std::endl;
+        }
+
+      }
+      // std::cout << "Header begin " << hdr.begin << std::endl;
+      // std::cout << "Header next to begin " << hdr.begin+1 << std::endl;
+      // std::cout << "Header current " << hdr.current << std::endl;
+      // std::cout << "Header end " << hdr.end << std::endl;
       std::cout << "------------------------" << std::endl;
     }
   }
