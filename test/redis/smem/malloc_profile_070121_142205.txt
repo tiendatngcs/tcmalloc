@@ -1,0 +1,33 @@
+070121_142205
+Test: set
+
+Name                          RSS      PSS      USS 
+redis-server                45368    39878    38588 
+redis-server               374588   369098   367808 
+redis-server               474544   469054   467764 
+redis-server               546844   541381   540116 
+redis-server               574512   569048   567784 
+redis-server               657036   651573   650308 
+redis-server               711368   707073   706972 
+redis-server               710944   706650   706548 
+redis-server               710944   706649   706548 
+redis-server               711060   706766   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706766   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706766   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706766   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706766   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711060   706765   706664 
+redis-server               711064   706770   706668 

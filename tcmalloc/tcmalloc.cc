@@ -2377,7 +2377,7 @@ class BackgroundWorker{
     }
     static void background_subrelease(){
       std::cout << "Thread: background_subrelease started." << std::endl;
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{10 << 20});
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
     static void background_release_to_OS(){

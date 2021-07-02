@@ -592,7 +592,7 @@ void CPUCache::Print(Printer *out) const {
         strandedHugePagePointer.insert(x);
     }
   }
-  out->printf("Total %3d stranded hugepage between all cpu caches.\n\n", strandedHugePagePointer.size());
+  out->printf("Total %d stranded hugepage between all cpu caches.\n\n", strandedHugePagePointer.size());
 }
 
 void CPUCache::PrintInPbtxt(PbtxtRegion *region) const {

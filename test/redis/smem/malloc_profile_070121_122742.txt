@@ -1,0 +1,14 @@
+070121_122742
+Test: set
+
+Name                          RSS      PSS      USS 
+redis-server                56584    51147    49848 
+redis-server               256376   250940   249640 
+redis-server               354192   348755   347456 
+redis-server               421456   415969   414628 
+redis-server               457128   451642   450300 
+redis-server               536252   530766   529424 
+redis-server               593108   588856   588732 
+redis-server               592616   588365   588240 
+redis-server               592616   588364   588240 
+redis-server               592616   588365   588240 
