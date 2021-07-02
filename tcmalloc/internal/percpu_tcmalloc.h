@@ -28,16 +28,11 @@
 #include "tcmalloc/internal/mincore.h"
 #include "tcmalloc/internal/percpu.h"
 
-<<<<<<< HEAD
-//Dat mod
-#include "tcmalloc/huge_pages.h"
-=======
 // Minh
 #include "tcmalloc/static_vars.h"
 #include "tcmalloc/pagemap.h"
 #include <set>
 
->>>>>>> e7cedecfd22f6593f23fb6a4193d82a450c3a182
 
 #if defined(TCMALLOC_PERCPU_USE_RSEQ)
 #if !defined(__clang__)
@@ -1237,7 +1232,7 @@ std::set<void*> TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu)
   if(strandedPointer.size()) {
     // for (void* x : strandedPointer)
     //   std::cout << x << " ";
-    printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
+    // printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
   }
   return strandedPointer;
 }
