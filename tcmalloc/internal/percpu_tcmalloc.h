@@ -1203,7 +1203,6 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
   }
 }
 
-
 // Dat mod
 template <size_t Shift, size_t NumClasses>
 std::set<void*> TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
@@ -1233,7 +1232,7 @@ std::set<void*> TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu)
   if(strandedPointer.size()) {
     // for (void* x : strandedPointer)
     //   std::cout << x << " ";
-    printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
+    // printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
   }
   return strandedPointer;
 }

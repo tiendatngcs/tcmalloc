@@ -45,6 +45,10 @@ for filename in natsorted(os.listdir(DIR)):
 # print(totalHugePageInUse)
 # print(totalHugePageFree)
 
+percentage = []
+for i in range(len(totalHugePageRequested)):
+    percentage.append(totalStrandedPage[i] / totalHugePageRequested[i])
+
 plt.plot(totalStrandedPage, label="Stranded Page")
 plt.plot(totalHugePageRequested, label="Requested")
 plt.plot(totalHugePageInUse, label="In Use")
@@ -53,4 +57,10 @@ plt.legend()
 plt.xlabel("time (s)")
 plt.ylabel("num(s) page")
 plt.title("Huge Page")
+plt.show()
+
+plt.plot(percentage, label="Percentage")
+plt.xlabel("time (s)")
+plt.ylabel("%")
+plt.title("% Huge Page Stranded")
 plt.show()

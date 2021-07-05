@@ -556,15 +556,36 @@ uint64_t CPUCache::Reclaim(int cpu) {
   return ctx.bytes;
 }
 
+void CPUCache::GetHugepageStrandedInfo(Printer *out) const{
+  out->printf("------------------------------------------------\n");
+  out->printf("Per-CPU hugepage(s) stranded: \n");
+  // Minh
+  // keep track of the stranded huge page in the cpu caches
+  std::set<void*> strandedHugePagePointer;
+  for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
+       ++cpu) {
+    // Minh
+    std::set<void*> tempStrandedPointer;
+    tempStrandedPointer = freelist_.GetNumHugepageStranded(cpu);
+    //Dat mod
+    out->printf("cpu %3d: %12d stranded hugepage(s) \n\n", cpu, tempStrandedPointer.size());
+    if(!strandedHugePagePointer.size())
+      strandedHugePagePointer = tempStrandedPointer;
+    else {
+      for (void* x : tempStrandedPointer)
+        strandedHugePagePointer.insert(x);
+    }
+  }
+  out->printf("Total %3d Hugepage(s) stranded in all cpu caches.\n\n", strandedHugePagePointer.size());
+}
+
 void CPUCache::Print(Printer *out) const {
   out->printf("------------------------------------------------\n");
   out->printf("Bytes in per-CPU caches (per cpu limit: %" PRIu64 " bytes)\n",
               Static::cpu_cache().CacheLimit());
   out->printf("------------------------------------------------\n");
   const cpu_set_t allowed_cpus = FillActiveCpuMask();
-  // Minh
-  // keep track of the stranded huge page in the cpu caches
-  std::set<void*> strandedHugePagePointer;
+
   // end
 
   for (int cpu = 0, num_cpus = absl::base_internal::NumCPUs(); cpu < num_cpus;
@@ -580,19 +601,8 @@ void CPUCache::Print(Printer *out) const {
                 cpu, rbytes, rbytes / MiB, unallocated,
                 CPU_ISSET(cpu, &allowed_cpus) ? " active" : "",
                 populated ? " populated" : "");
-    // Minh
-    std::set<void*> tempStrandedPointer;
-    tempStrandedPointer = freelist_.GetNumHugepageStranded(cpu);
-    //Dat mod
-    out->printf("cpu %3d: %12d stranded hugepage \n\n", cpu, tempStrandedPointer.size());
-    if(!strandedHugePagePointer.size())
-      strandedHugePagePointer = tempStrandedPointer;
-    else {
-      for (void* x : tempStrandedPointer)
-        strandedHugePagePointer.insert(x);
-    }
   }
-  out->printf("Total %d stranded hugepage between all cpu caches.\n\n", strandedHugePagePointer.size());
+  CPUCache::GetHugepageStrandedInfo(out);
 }
 
 void CPUCache::PrintInPbtxt(PbtxtRegion *region) const {

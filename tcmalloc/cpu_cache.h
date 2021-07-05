@@ -102,6 +102,9 @@ class CPUCache {
   static constexpr size_t kPerCpuShift = 18;
 #endif
 
+  // Dat
+  void GetHugepageStrandedInfo(Printer* out) const;
+
   // Report statistics
   void Print(Printer* out) const;
   void PrintInPbtxt(PbtxtRegion* region) const;
