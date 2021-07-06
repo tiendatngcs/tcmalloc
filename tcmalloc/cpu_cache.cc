@@ -568,7 +568,7 @@ void CPUCache::GetHugepageStrandedInfo(Printer *out) const{
     std::set<void*> tempStrandedPointer;
     tempStrandedPointer = freelist_.GetNumHugepageStranded(cpu);
     //Dat mod
-    out->printf("cpu %3d: %12d stranded hugepage(s) \n\n", cpu, tempStrandedPointer.size());
+    out->printf("cpu %3d: %12d stranded hugepage(s)\n", cpu, tempStrandedPointer.size());
     if(!strandedHugePagePointer.size())
       strandedHugePagePointer = tempStrandedPointer;
     else {

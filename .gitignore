@@ -1,4 +1,9 @@
 bazel-*
+
 .vscode/*
+
 test/*
 !test/redis/
+
+bench-results/stats/*
+bench-results/smem/*
