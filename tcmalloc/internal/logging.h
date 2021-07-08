@@ -24,7 +24,7 @@
 #include "absl/base/optimization.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "tcmalloc/internal/config.h"
+#include "config.h"
 
 //-------------------------------------------------------------------
 // Utility routines
