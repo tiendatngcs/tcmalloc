@@ -2385,24 +2385,19 @@ class BackgroundWorker{
 
     }
     static void Init(){
-      // const char *progname[3] = {"redis-server", "hello_world", "canneal"};
-      // bool valid_progname = false;
-      // for(const char *x: progname) {
-      //   if(!strcmp(__progname, x)) {
-      //     valid_progname = true;
-      //     break;
-      //   }
-      // }
-
-      // if(valid_progname) {
+      const char *progname[] = {"redis-server", "hello_world", "canneal", "streamcluster"};
+      bool valid_progname = false;
+      for(const char *x: progname) {
+        if(strcmp(__progname, x) == 0) {
+          std::thread(write_stats_to_file).detach();
+          std::thread(background_subrelease).detach();
+          break;
+        }
+      }
+      // if(strcmp(__progname, "redis-server" ) == 0 || strcmp(__progname, "hello_world") == 0){
       //   std::thread(write_stats_to_file).detach();
       //   std::thread(background_subrelease).detach();
       // }
-
-      if(strcmp(__progname, "redis-server" ) == 0 || strcmp(__progname, "hello_world") == 0){
-        std::thread(write_stats_to_file).detach();
-        std::thread(background_subrelease).detach();
-      }
     }
 };
 

@@ -16,7 +16,7 @@ https://parsec.cs.princeton.edu/download/tutorial/2.0/parsec-2.0-tutorial.pdf
 	# build
 		parsecmgmt -a build -p canneal -c gcc
 	# run bench
-		parsecmgmt -a run -p canneal -c gcc -i simlarge
+		parsecmgmt -a run -p canneal -c gcc -i native
 
 	# gdb
 		extract the .nets file from the /input folder for test

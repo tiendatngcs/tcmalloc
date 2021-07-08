@@ -576,7 +576,7 @@ void CPUCache::GetHugepageStrandedInfo(Printer *out) const{
         strandedHugePagePointer.insert(x);
     }
   }
-  out->printf("Total %3d Hugepage(s) stranded in all cpu caches.\n\n", strandedHugePagePointer.size());
+  out->printf("Total %d Hugepage(s) stranded in all cpu caches.\n", strandedHugePagePointer.size());
 }
 
 void CPUCache::Print(Printer *out) const {

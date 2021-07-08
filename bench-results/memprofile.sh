@@ -1,6 +1,6 @@
-REDIS_SERVER_ID=$1
-TEST_NAME=$2
-MEMO=$3
+TEST_NAME=$1
+MEMO=$2
+
 TIME_STAMP=$(date +%m%d%y_%H%M%S)
 CURRENT_DIR=$(pwd)
 
@@ -18,10 +18,21 @@ touch $SMEM_FILE
 echo $TIME_STAMP | tee -a $SMEM_FILE
 echo "Test: $TEST_NAME" | tee -a $SMEM_FILE
 echo $MEMO | tee -a $SMEM_FILE
-smem -P redis-server -c "name rss pss uss" | head -n 1 >> $SMEM_FILE
-for i in `seq 1 1000`
-do
-    smem -P redis-server -c "name rss pss uss" | grep redis-server >> $SMEM_FILE
-    sleep 1
-done
-echo ------------------------------------------------------------------ >> $FILE
+
+if [ "$TEST_NAME" == "get" -o "$TEST_NAME" == "set" ]
+then
+    smem -P redis-server -c "name rss pss uss" | head -n 1 >> $SMEM_FILE
+    for i in `seq 1 1000`
+    do
+        smem -P redis-server -c "name rss pss uss" | grep redis-server >> $SMEM_FILE
+        sleep 1
+    done
+elif [ "$TEST_NAME" == "streamcluster" -o "$TEST_NAME" == "canneal" ]
+then
+    smem -P $TEST_NAME -c "name rss pss uss" | head -n 1 >> $SMEM_FILE
+    for i in `seq 1 1000`
+    do
+        smem -P $TEST_NAME -c "name rss pss uss" | grep $TEST_NAME >> $SMEM_FILE
+        sleep 1
+    done
+fi
