@@ -32,57 +32,53 @@ struct bench_profile
 };
 
 // utility function to find ceiling of r in arr[l..h]
-int findCeil(double arr[], int r, int l, int h)
+int findCeil(int prefix[], int r, int l, int h)
 {
     int mid;
     while (l < h)
     {
         mid = l + ((h - l) >> 1); // Same as mid = (l+h)/2
-        (r > arr[mid]) ? (l = mid + 1) : (h = mid);
+        (r > prefix[mid]) ? (l = mid + 1) : (h = mid);
     }
-    return (arr[l] >= r) ? l : -1;
+    return (prefix[l] >= r) ? l : -1;
 }
  
 // the main function that returns a random number
 // from arr[] according to distribution array
 // defined by freq[]. n is size of arrays.
-int myRand(std::vector<size_t> arr, std::vector<double> freq, int n)
+int myRand(std::vector<size_t> arr, std::vector<int> freq, int n)
 {
     // Create and fill prefix array
-    double prefix[n];
+    int prefix[n];
     int i;
     prefix[0] = freq[0];
     for (i = 1; i < n; ++i)
         prefix[i] = prefix[i - 1] + freq[i];
-
-    // for (double x : prefix)
-    //     std::cout << std::setprecision(18) << x << std::endl;
  
     // prefix[n-1] is sum of all frequencies.
-    // Generate a random number with
-    // value from 1 to this sum
-    int r = std::fmod(rand(), prefix[n - 1]) + 1;
+    // Generate a random number with value from 1 to this sum
+    // double r = std::fmod(rand(), prefix[n - 1]) + 1;
+    int r = (rand() % prefix[n - 1]) + 1;
  
     // Find index of ceiling of r in prefix array
     int indexc = findCeil(prefix, r, 0, n - 1);
 
     // std:: ofstream myfile;
-    // myfile.open("test.txt", std::ios_base::app);
+    // myfile.open("index_value.txt", std::ios_base::app);
     // myfile << "index: " << indexc << " value: " << arr[indexc] << "\n";
     // myfile.close();
 
     return arr[indexc];
 }
 
-
 // get the size and frequency from a profile
 void getSizeAndFrequency(std::vector<bench_profile> profile, 
                                     std::vector<size_t> &size_vec, 
-                                    std::vector<double> &freq_vec) {
+                                    std::vector<int> &freq_vec) {
     int s = profile.size();
     for(int i = 0; i < s; i++) {
-        size_vec.push_back(profile[i].size);
-        freq_vec.push_back(profile[i].alloc_rate);
+        size_vec.push_back(std::ceil(profile[i].size));
+        freq_vec.push_back(std::ceil(profile[i].alloc_rate));
     }
 
     // std:: ofstream myfile("distribution.txt");
@@ -92,32 +88,51 @@ void getSizeAndFrequency(std::vector<bench_profile> profile,
     // myfile.close();
 }
 
-
 void bench(std::vector<bench_profile> profile) {
-    std::vector<size_t> size;
-    std::vector<double> freq;
-    getSizeAndFrequency(profile, size, freq);
+    std::vector<size_t> malloc_size;
+    std::vector<int> freq;
+    getSizeAndFrequency(profile, malloc_size, freq);
     
     std::map<size_t, int> malloc_count;
 
+    int sum = 0;
+    sum = std::accumulate(freq.begin(), freq.end(), sum);
+
     srand(time(NULL));
-    double n = sizeof(size);
-    int LOOP_COUNT = 10000000;
+    int n = malloc_size.size();
+    int LOOP_COUNT = sum;
     for (int i = 0; i < LOOP_COUNT; i++)
     {
-        size_t a = myRand(size, freq, n);
-        // 6209 could be due to floating point error the index == -1
-        if(a == 6209)
-            continue;
+        size_t a = myRand(malloc_size, freq, n);
         malloc_count[a]++;
     };
 
-    for(auto x: malloc_count) {
-        std::cout << x.first << ": " << x.second << std::endl;
+    int mapSum = 0;
+    for(int i = 0; i < freq.size(); i++) {
+        mapSum = mapSum + malloc_count[malloc_size[i]];
+        //std::cout << malloc_count.at(i).first << ": " << malloc_count.at(i).second << std::endl;
+        std::cout << malloc_size[i] << " got called: " << malloc_count[malloc_size[i]] << " real distribution: " << freq[i] << std::endl;
     }
+
+    std::cout << "Freq sum: " << sum << std::endl;
+    std::cout << "Map sum: " << mapSum << std::endl;
+
 }
 
 int main() {
+    std::vector<bench_profile> Test = {
+        {1, 10, 1476.0622627267278},
+        {2, 5, 291.72053371223052},
+        {3, 20, 525.96993983526852},
+        {4, 100, 939.90755500299713},
+        {5, 5, 235.70437137846059},
+        {6, 24, 108.39491152898341},
+        {7, 7, 363.01384232844168},
+        {8, 5300, 16951.802688542059},
+        {9, 6, 49.832559998223921},
+        {10, 5, 145.13278422840398}
+    };
+
     std::vector<bench_profile> Beta = {
         {1, 1105.1490179533014, 1476.0622627267278},
         {2, 157.89933938068327, 291.72053371223052},
@@ -9651,6 +9666,6 @@ int main() {
         {15922538564, 3.7295341811807706e-06, 3.7262683285823413e-05},
     };
 
-    bench(Beta);
+    bench(Sigma);
     return 0;
 }
