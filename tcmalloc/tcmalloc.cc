@@ -2394,10 +2394,6 @@ class BackgroundWorker{
           break;
         }
       }
-      // if(strcmp(__progname, "redis-server" ) == 0 || strcmp(__progname, "hello_world") == 0){
-      //   std::thread(write_stats_to_file).detach();
-      //   std::thread(background_subrelease).detach();
-      // }
     }
 };
 

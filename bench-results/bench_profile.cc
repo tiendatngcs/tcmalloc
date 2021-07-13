@@ -22,6 +22,8 @@
 #include <string>
 #include <string.h>
 #include <unistd.h>
+#include <thread>
+#include <chrono>
 
 struct bench_profile
 {
@@ -91,28 +93,22 @@ void getSizeAndFrequency(std::vector<bench_profile> profile,
     // myfile.close();
 }
 
-void bench(std::vector<bench_profile> profile, std::string test_suite, std::string test_name, std::string release_rate) {
+static void smem(std::string test_suite, std::string test_name, std::string release_rate) {
+    std::string profile_string = "./memprofile.sh " + test_name + " " + release_rate;
+    const char* profile_shell = profile_string.c_str();
+    std::system(profile_shell);
+}
+
+static void bench(std::vector<bench_profile> profile, std::string test_suite, std::string test_name, std::string release_rate) {
     std::vector<size_t> malloc_size;
     std::vector<int> freq;
     getSizeAndFrequency(profile, malloc_size, freq);
     
-    // start redis and profiler
-    std::string profile_string = "./memprofile.sh true " + test_name + " " + release_rate;
-    const char* profile_shell = profile_string.c_str();
+    // start redis
     if(test_suite.compare("redis") == 0) {
         std::system("./redis/start_redis.sh");
-        std::system(profile_shell);
         sleep(5);
     }
-
-    // get pid
-    // char line[10];
-	// FILE *cmd = popen("pidof -s memprofile.sh", "r");
-	// long pid = 0;
-	// fgets(line, 10, cmd);
-	// pid = strtoul(line, NULL, 10);
-    // printf("%lu\n", pid);
-	// pclose(cmd);
 
     // populating
     srand(time(NULL));
@@ -122,14 +118,15 @@ void bench(std::vector<bench_profile> profile, std::string test_suite, std::stri
     {
         // generate random class size and populate redis
         size_t sizeMalloc = myRand(malloc_size, freq, n);
-        // for redis set we need to populate it everytime
+        // for redis set we need to populate and flush it everytime
         if(test_name.compare("set") == 0)
         {
-            std::string set_string = "./redis/populate_redis.sh " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 90000 + 10000);
+            std::string set_string = "./redis/bench.sh set " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 900000 + 100000);
             const char* set_shell = set_string.c_str();
             std::cout << "Round: " << i << " Running redis set: " << set_shell << std::endl;
             std::system(set_shell);
         }
+        // for other test we just need to popuplate it
         else
         {
             std::string populate_string = "./redis/populate_redis.sh " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 90000 + 10000);
@@ -137,34 +134,35 @@ void bench(std::vector<bench_profile> profile, std::string test_suite, std::stri
             std::cout << "Round: " << i << " Populating: " << populate_shell << std::endl;
             std::system(populate_shell);
         }
-
-
-        // run the profiler
-        std::string profile_string = "./memprofile.sh false " + test_name + " " + release_rate;
-        const char* profile_shell = profile_string.c_str();
-        std::system(profile_shell);
-        sleep(5);
     };
+
+    // if the we are not using set then we need to do other benchmark
+    if(test_name.compare("set") != 0) {
+        for (int i = 0; i < LOOP_COUNT; i++)
+        {
+            // generate random class size and populate redis
+            size_t sizeMalloc = myRand(malloc_size, freq, n);
+            std::string set_string = "./redis/bench.sh " + test_name + " " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 90000 + 10000);
+            const char* set_shell = set_string.c_str();
+            std::cout << "Round: " << i << " Running redis " << test_name << ": " << set_shell << std::endl;
+            std::system(set_shell);
+        }
+    }
+
+    // moving stat file
+    if(test_suite.compare("redis") == 0) 
+    {
+        std::string stat_string = "./redis/stat.sh " + test_name + " " + release_rate;
+        const char* stat_shell = stat_string.c_str();
+        std::system(stat_shell);
+    }
 
     // kill redis server if neccessary
     if(test_suite.compare("redis") == 0)
-        std::system("./redis/stop_redis.sh ");
+        std::system("./redis/stop_redis.sh");
 }
 
 int main() {
-    std::vector<bench_profile> Test = {
-        {1, 10, 1476.0622627267278},
-        {2, 5, 291.72053371223052},
-        {3, 20, 525.96993983526852},
-        {4, 100, 939.90755500299713},
-        {5, 5, 235.70437137846059},
-        {6, 24, 108.39491152898341},
-        {7, 7, 363.01384232844168},
-        {8, 5300, 16951.802688542059},
-        {9, 6, 49.832559998223921},
-        {10, 5, 145.13278422840398}
-    };
-
     std::vector<bench_profile> Beta = {
         {1, 1105.1490179533014, 1476.0622627267278},
         {2, 157.89933938068327, 291.72053371223052},
@@ -9698,6 +9696,19 @@ int main() {
         {15922538564, 3.7295341811807706e-06, 3.7262683285823413e-05},
     };
 
-    bench(Beta, "redis", "set", "0MB");
+    // available_test: PING_INLINE, PINT_BULK, SET, GET, INCR, SADD, Lrange_300, LRANFE_600, LPUSH, RPUSH,
+    // LPOP, RPOP, MSET, LPUSH, LRANGE
+    std::string test_suite = "redis";
+    std::string test_name = "PING_INLINE";
+    std::string release_rate = "0MB";
+
+    // profiler
+    std::thread(smem, test_suite, test_name, release_rate).detach();
+
+    // bench
+    bench(Beta, test_suite, test_name, release_rate);
+
+    // kill profiler
+    std::system("killall sh -c ./memprofile.sh");
     return 0;
 }
