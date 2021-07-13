@@ -16,7 +16,7 @@
 #define TCMALLOC_TESTING_EMPIRICAL_DISTRIBUTIONS_H_
 
 #include "absl/types/span.h"
-#include "tcmalloc/testing/empirical.h"
+#include "empirical.h"
 
 namespace tcmalloc {
 namespace empirical_distributions {

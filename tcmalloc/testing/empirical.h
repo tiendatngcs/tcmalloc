@@ -47,7 +47,7 @@
 #include "absl/random/random.h"
 #include "absl/random/uniform_real_distribution.h"
 #include "absl/types/span.h"
-#include "tcmalloc/internal/logging.h"
+#include "../internal/logging.h"
 
 namespace tcmalloc {
 

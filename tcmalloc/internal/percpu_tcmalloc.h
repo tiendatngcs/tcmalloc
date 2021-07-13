@@ -1239,11 +1239,11 @@ std::set<void*> TcmallocSlab<Shift, NumClasses>::GetHugepageStranded(int cpu) co
       }
     }
   }
-  if(strandedPointer.size()) {
+  // if(strandedPointer.size()) {
     // for (void* x : strandedPointer)
     //   std::cout << x << " ";
     // printf("cpu: %d, total hugepage requested: %lu \n", cpu, strandedPointer.size());
-  }
+  // }
   return strandedPointer;
 }
 

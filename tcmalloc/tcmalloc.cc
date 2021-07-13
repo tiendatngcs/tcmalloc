@@ -2367,12 +2367,12 @@ class BackgroundWorker{
     static void write_stats_to_file(){
       std::cout << "Thread: write_stats_to_file started." << std::endl;
       int count = 0;
-      if(std::filesystem::is_directory("Stats"))
-        std::filesystem::remove_all("Stats");
-      std::filesystem::create_directory("Stats");
+      if(std::filesystem::is_directory("stats"))
+        std::filesystem::remove_all("stats");
+      std::filesystem::create_directory("stats");
       std::ofstream out_file;
-      while(true){
-        out_file.open("Stats/Stats_" + std::to_string(count) + ".txt");
+      while(true) {
+        out_file.open("stats/stats_" + std::to_string(count) + ".txt");
         out_file << tcmalloc::MallocExtension::GetStats();
         out_file.close();
         count++;
@@ -2381,7 +2381,7 @@ class BackgroundWorker{
     }
     static void background_subrelease(){
       std::cout << "Thread: background_subrelease started." << std::endl;
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{10 << 20});
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
     static void background_release_to_OS(){
@@ -2389,9 +2389,14 @@ class BackgroundWorker{
 
     }
     static void Init(){
-      if (strcmp(__progname, "redis-server" ) == 0 || strcmp(__progname, "hello_world") == 0){
-        std::thread(write_stats_to_file).detach();
-        std::thread(background_subrelease).detach();
+      const char *progname[] = {"redis-server", "hello_world", "canneal", "streamcluster"};
+      bool valid_progname = false;
+      for(const char *x: progname) {
+        if(strcmp(__progname, x) == 0) {
+          std::thread(write_stats_to_file).detach();
+          std::thread(background_subrelease).detach();
+          break;
+        }
       }
     }
 };

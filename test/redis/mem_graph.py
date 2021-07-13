@@ -1,14 +1,15 @@
-from matplotlib import pyplot as plt
 import pandas as pd
 import sys
 import numpy as np
 import glob
 import os
 
-list_of_files = glob.glob('./smem/*') # * means all if need specific format then *.csv
-latest_file = max(list_of_files, key=os.path.getctime)
-print(latest_file)
+from matplotlib import pyplot as plt
 
+DIR = "/home/minh/Desktop/tcmalloc/test/redis/smem"
+file_list = [os.path.join(DIR, f) for f in os.listdir(DIR)]
+latest_file = max(file_list, key=os.path.getctime)
+print(latest_file)
 
 f = open(latest_file, "r")
 date = f.readline()

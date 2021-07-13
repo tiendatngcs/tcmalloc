@@ -1,0 +1,18 @@
+070121_142135
+Test: set
+
+Address           Kbytes     RSS   Dirty Mode  Mapping
+total kB         1125844   12164    6360
+total kB         2174420   41836   36032
+total kB         2174420  137912  132108
+total kB         2174420  229660  223304
+total kB         2174420  254840  248484
+total kB         2174420  347660  341304
+total kB         2174420  424512  418156
+total kB         2174420  424040  417684
+total kB         2174420  424040  417084
+total kB         2174420  424040  417084
+total kB         2174420  424040  417084
+total kB         2174420  424040  417084
+total kB         2174420  424040  417084
+total kB         2174420  424040  416788

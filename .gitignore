@@ -1,3 +1,9 @@
 bazel-*
+
 .vscode/*
+
 test/*
+
+bench-results/stats/*
+bench-results/smem/*
+bench-results/bench_profile
