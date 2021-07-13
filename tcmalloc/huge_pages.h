@@ -52,9 +52,9 @@ inline constexpr Length kPagesPerHugePage =
 struct HugePage {
   uintptr_t pn; // Hugepage index
   // Dat mod
-  // size_t numLive = 0; // Number of objects that are being used by the app
-  // size_t numIdle = 0; // Number of objects that are stucked in the CPU cache
-  // size_t numFree = 0; // Number of objects that are free in the cfl or transfer cache?
+  size_t numLive = 0; // Number of objects that are being used by the app
+  size_t numIdle = 0; // Number of objects that are stucked in the CPU cache
+  size_t numFree = 0; // Number of objects that are free in the cfl or transfer cache?
   // Dat mod ends
 
   void *start_addr() const {
@@ -387,9 +387,9 @@ struct HugeRange {
 
   
 
-  std::atomic<Value> size_live; // Amount of mem used by app
-  std::atomic<Value> size_idle; // Amount of mem locating in CPU cache
-  std::atomic<Value> size_free; // Amount of mem free in cfl or transfer cache
+  // std::atomic<Value> size_live; // Amount of mem used by app
+  // std::atomic<Value> size_idle; // Amount of mem locating in CPU cache
+  // std::atomic<Value> size_free; // Amount of mem free in cfl or transfer cache
 
   HugePage first;
   HugeLength n;
