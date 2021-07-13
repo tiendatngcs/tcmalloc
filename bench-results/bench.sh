@@ -1,26 +1,65 @@
 BENCH_MARK=$1
 TEST_NAME=$2
 MEMO=$3
+MALLOC_SIZE=$4
 
 # redis: PING_INLINE, PINT_BULK, SET, GET, INCR, SADD, Lrange_300, LRANFE_600, LPUSH, RPUSH,
 # LPOP, RPOP, MSET, LPUSH, LRANGE
 
-mkdir stats
 CURRENT_DIR=$(pwd)
+mkdir stats
 
-# Get path to tcmalloc
-cd ../bazel-bin/tcmalloc
-TCMALLOC_BIN=$(pwd)
+save_stat_file() {
+	# get the stat files
+	echo "moving stat files"
+	cd $CURRENT_DIR
+	cd stats
+	mkdir $TEST_NAME
+	cd $TEST_NAME
+	# check if the stat dir for this test had been created, if so we deleted it
+	mkdir $MEMO
+	if [ $? -ne 0 ]
+	then
+		rm -fr ./$MEMO
+    	mkdir $MEMO
+	fi
+	cd $MEMO
+	mv $REDIS_SRC/stats/* .
+}
 
+populate() {
+	echo "Populating"
+}
+
+redis_set() {
+	./redis-benchmark -t $TEST_NAME -c 1000 -r 2000000 -d $MALLOC_SIZE -n 1 -q
+	echo -ne "dbsize: "
+	./redis-cli dbsize
+	sleep 30
+	echo -ne Flushing db
+	./redis-cli flushdb
+	echo -ne "dbsize: "
+	./redis-cli dbsize
+	echo "------------------------------------------------------"
+	sleep 30
+}
+
+kill_process() {
+	echo "terminating memprofiler"
+	kill -15 $REDIS_SERVER_PID
+	kill -15 $PROFILER_PID
+}
+############
+### MAIN ###
+############
 # for redis
-if [ "$BENCH_MARK" == "redis" ]
+if [ $BENCH_MARK = "redis" ]
 then
 	# redis-server is compiled with tcmalloc
 	REDIS_SRC="/home/minh/Desktop/redis/src"
 
 	#Run redis server
 	cd $REDIS_SRC
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TCMALLOC_BIN
 	./redis-server&
 	REDIS_SERVER_PID=$!
 
@@ -31,67 +70,20 @@ then
 
 	# Benchmarking
 	cd $REDIS_SRC
-	sleep 0.1
-	echo populating ...
-	./redis-benchmark -t set -c 1000 -r 2000000 -d 1000 -n 20000 -q
-	
-	for i in `seq 1 5`
-	do
-		echo loop $i
-		echo "Running test $TEST_NAME"
-		./redis-benchmark -t $TEST_NAME -c 1000 -r 2000000 -d 1000 -n 20000 -q
-		echo -ne dbsize:
-		./redis-cli dbsize
-		sleep 30
-		if [ $TEST_NAME == "set" ]
-		then
-			echo -ne Flushing db
-			./redis-cli flushdb
-		fi
-		echo -ne dbsize:
-		./redis-cli dbsize
-		echo ------------------------------------------------------
-		sleep 30
-	done
-	echo terminating memprofiler
-	kill -15 $REDIS_SERVER_PID
-	kill -15 $PROFILER_PID
-	
-	# get the stat files
-	echo moving stat files
-	cd $CURRENT_DIR
-	cd stats
-	mkdir $TEST_NAME
-	cd $TEST_NAME
-
-	mkdir $MEMO
-	if [ $? -ne 0 ]
+	# for i in `seq 1 5`
+	# do
+	# 	echo "loop" $i
+	echo "Running test $TEST_NAME"
+	if [ $TEST_NAME = "set" ]
 	then
-		rm -fr ./$MEMO
-    	mkdir $MEMO
+		redis_set
 	fi
+	# done
 
-	cd $MEMO
-	mv $REDIS_SRC/stats/* .
-elif [ "$BENCH_MARK" == "firefox" ]
+	kill_process
+
+	save_stat_file
+elif [ $BENCH_MARK = "firefox" ]
 then
-	echo Benchmark using firefox
-
-	# cd $CURRENT_DIR
-	# ./memprofile.sh $TEST_NAME $MEMO&
-	# PROFILER_PID=$!
-	
-	# wait
-	# kill -15 $CANNEAL_PID
-	# kill -15 $PROFILER_PID
-
-	# get the stat files
-	# echo moving stat files
-	# cd $CURRENT_DIR
-	# cd stats
-	# mkdir $TEST_NAME
-	# cd $TEST_NAME
-	# mkdir $MEMO
-	# cd $MEMO
-	# mv /home/minh/Desktop/parsec-benchmark/pkgs/kernels/canneal/inst/amd64-linux.gcc/bin/stats/* .
+	echo "Benchmark using firefox"
 fi
