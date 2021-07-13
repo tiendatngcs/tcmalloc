@@ -20,13 +20,16 @@
 #include <atomic>
 #include <cstring>
 
-//Dat mod
+// Dat mod
 #include <iostream>
 
 #include "absl/base/dynamic_annotations.h"
 #include "absl/base/internal/sysinfo.h"
 #include "tcmalloc/internal/mincore.h"
 #include "tcmalloc/internal/percpu.h"
+
+// Dat mod
+#include "tcmalloc/huge_pages.h"
 
 // Minh
 #include "tcmalloc/static_vars.h"
@@ -150,7 +153,8 @@ class TcmallocSlab {
                                size_t n, size_t cap);
   void Drain(int cpu, void* drain_ctx, DrainHandler f);
 
-  std::set<void*> GetNumHugepageStranded(int cpu) const;
+  // Return set of pointers to stranded hugepages for a signle CPU
+  std::set<void*> GetHugepageStranded(int cpu) const;
 
   PerCPUMetadataState MetadataMemoryUsage() const;
 
@@ -519,16 +523,19 @@ template <size_t Shift, size_t NumClasses>
 inline ABSL_ATTRIBUTE_ALWAYS_INLINE bool TcmallocSlab<Shift, NumClasses>::Push(
     size_t cl, void* item, OverflowHandler f) {
   ASSERT(item != nullptr);
+  bool result;
 #if defined(__x86_64__) || defined(__aarch64__)
-  return TcmallocSlab_Internal_Push<Shift, NumClasses>(
+  result = TcmallocSlab_Internal_Push<Shift, NumClasses>(
              slabs_, cl, item, f, virtual_cpu_id_offset_) >= 0;
 #else
   if (Shift == TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT) {
-    return TcmallocSlab_Internal_Push_FixedShift(slabs_, cl, item, f) >= 0;
+    result = TcmallocSlab_Internal_Push_FixedShift(slabs_, cl, item, f) >= 0;
   } else {
-    return TcmallocSlab_Internal_Push(slabs_, cl, item, Shift, f) >= 0;
+    result = TcmallocSlab_Internal_Push(slabs_, cl, item, Shift, f) >= 0;
   }
 #endif
+  HugePageContaining(item).move_to_idle_from_live(1);
+  return result;
 }
 
 #if defined(__x86_64__)
@@ -795,16 +802,19 @@ underflow_path:
 template <size_t Shift, size_t NumClasses>
 inline ABSL_ATTRIBUTE_ALWAYS_INLINE void* TcmallocSlab<Shift, NumClasses>::Pop(
     size_t cl, UnderflowHandler f) {
+  void* result;
 #if defined(__x86_64__) || defined(__aarch64__)
-  return TcmallocSlab_Internal_Pop<Shift, NumClasses>(slabs_, cl, f,
+  result = TcmallocSlab_Internal_Pop<Shift, NumClasses>(slabs_, cl, f,
                                                       virtual_cpu_id_offset_);
 #else
   if (Shift == TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT) {
-    return TcmallocSlab_Internal_Pop_FixedShift(slabs_, cl, f);
+    result = TcmallocSlab_Internal_Pop_FixedShift(slabs_, cl, f);
   } else {
-    return TcmallocSlab_Internal_Pop(slabs_, cl, f, Shift);
+    result = TcmallocSlab_Internal_Pop(slabs_, cl, f, Shift);
   }
 #endif
+  HugePageContaining(result).move_to_live(1);
+  return result;
 }
 
 static inline void* NoopUnderflow(int cpu, size_t cl) { return nullptr; }
@@ -1205,7 +1215,7 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
 
 // Dat mod
 template <size_t Shift, size_t NumClasses>
-std::set<void*> TcmallocSlab<Shift, NumClasses>::GetNumHugepageStranded(int cpu) const {
+std::set<void*> TcmallocSlab<Shift, NumClasses>::GetHugepageStranded(int cpu) const {
   int count = 0;
   std::set<void*> strandedPointer;
   Header hdr;

@@ -117,7 +117,7 @@ void* AddressRegionFactory::MallocInternal(size_t size) {
 #endif
 
 std::string MallocExtension::GetStats() {
-  std::string ret = "Null";
+  std::string ret = "";
 #if ABSL_INTERNAL_HAVE_WEAK_MALLOCEXTENSION_STUBS
   if (&MallocExtension_Internal_GetStats != nullptr) {
     MallocExtension_Internal_GetStats(&ret);

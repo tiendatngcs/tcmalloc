@@ -71,6 +71,11 @@ class HugeAllocator {
   void Print(Printer *out);
   void PrintInPbtxt(PbtxtRegion *hpaa) const;
 
+  // Dat mod
+  HugeAddressMap huge_address_map() const {
+    return free_;
+  }
+
  private:
   // We're constrained in several ways by existing code.  Hard requirements:
   // * no radix tree or similar O(address space) external space tracking

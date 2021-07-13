@@ -177,9 +177,9 @@ void *CPUCache::Refill(int cpu, size_t cl) {
   // (to increase possibility that we stay on the current CPU as we are
   // refilling the list).
   ObjectsToReturn to_return;
+  // Target number of objects requested from central cache
   const size_t target =
       UpdateCapacity(cpu, cl, batch_length, false, &to_return);
-
   // Refill target objects in batch_length batches.
   size_t total = 0;
   size_t got;
@@ -189,6 +189,13 @@ void *CPUCache::Refill(int cpu, size_t cl) {
   do {
     const size_t want = std::min(batch_length, target - total);
     got = Static::transfer_cache().RemoveRange(cl, batch, want);
+    // Dat mod
+    // assume local catch got all items in batch
+    for (size_t idx = 0; idx < want; idx++){
+      HugePageContaining(batch[idx]).move_to_idle_from_free(1);
+
+    }
+    // Dat mod ends
     if (got == 0) {
       break;
     }
@@ -199,10 +206,16 @@ void *CPUCache::Refill(int cpu, size_t cl) {
       result = batch[i];
     }
     if (i) {
+
       i -= freelist_.PushBatch(cl, batch, i);
       if (i != 0) {
         static_assert(ABSL_ARRAYSIZE(batch) >= kMaxObjectsToMove,
                       "not enough space in batch");
+        // Dat mod
+        // Returning non-pushable items back to central cache
+        for (size_t idx = 0; idx < i; idx++){
+          HugePageContaining(batch[idx]).move_to_free_from_idle(1);
+        }
         Static::transfer_cache().InsertRange(cl, absl::Span<void *>(batch), i);
       }
     }
@@ -210,6 +223,9 @@ void *CPUCache::Refill(int cpu, size_t cl) {
            cpu == freelist_.GetCurrentVirtualCpuUnsafe());
 
   for (int i = to_return.count; i < kMaxToReturn; ++i) {
+    // Dat mod
+    HugePageContaining(to_return.obj[i]).move_to_free_from_idle(1);
+    // end Dat mod
     Static::transfer_cache().InsertRange(
         to_return.cl[i], absl::Span<void *>(&(to_return.obj[i]), 1), 1);
   }
@@ -445,7 +461,7 @@ int CPUCache::Overflow(void *ptr, size_t cl, int cpu) {
   const size_t target = UpdateCapacity(cpu, cl, batch_length, true, nullptr);
   // Return target objects in batch_length batches.
   size_t total = 0;
-  size_t count = 1;
+  size_t count = 1; // number of items being removed from cpu cache
   void *batch[kMaxObjectsToMove];
   batch[0] = ptr;
   do {
@@ -458,6 +474,9 @@ int CPUCache::Overflow(void *ptr, size_t cl, int cpu) {
     total += count;
     static_assert(ABSL_ARRAYSIZE(batch) >= kMaxObjectsToMove,
                   "not enough space in batch");
+    for (size_t idx = 0; idx < count; idx++){
+      HugePageContaining(batch[idx]).move_to_free_from_idle(1);
+    }
     Static::transfer_cache().InsertRange(cl, absl::Span<void *>(batch), count);
     if (count != batch_length) break;
     count = 0;
@@ -566,7 +585,7 @@ void CPUCache::GetHugepageStrandedInfo(Printer *out) const{
        ++cpu) {
     // Minh
     std::set<void*> tempStrandedPointer;
-    tempStrandedPointer = freelist_.GetNumHugepageStranded(cpu);
+    tempStrandedPointer = freelist_.GetHugepageStranded(cpu);
     //Dat mod
     out->printf("cpu %3d: %12d stranded hugepage(s) \n\n", cpu, tempStrandedPointer.size());
     if(!strandedHugePagePointer.size())
