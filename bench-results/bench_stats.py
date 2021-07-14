@@ -11,6 +11,7 @@ from natsort import natsorted
 class Benchmark_Stat:
     def __init__(self, DIR, test_name):
         self.DIR = DIR
+        self.PIC_DIR = "pic/"
         self.test_name = test_name
 
         self.pattern1 = "Total(\s*)\d+ Hugepage\(s\) stranded in all cpu caches."
@@ -53,7 +54,7 @@ class Benchmark_Stat:
     def get_stranded_percentage(self):
         if len(self.totalStrandedPage):
             for i in range(len(self.totalHugePageRequested)):
-                self.percentage.append(self.totalStrandedPage[i] / self.totalHugePageRequested[i])
+                self.percentage.append(self.totalStrandedPage[i] / self.totalHugePageRequested[i] * 100)
             self.plot_percentage()
         else:
             print("0 stranded page")
@@ -67,19 +68,22 @@ class Benchmark_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("num(s) page")
         plt.title("Huge Page Usage in " + self.test_name)
-        plt.show()
+        # plt.show()
+        plt.savefig(self.PIC_DIR + self.test_name + '-HP-Usage.png')
     
     def plot_percentage(self):
         plt.plot(self.percentage, label="Percentage")
         plt.xlabel("time (s)")
         plt.ylabel("%")
         plt.title("% Huge Page Stranded in " + self.test_name)
-        plt.show()
+        # plt.show()
+        plt.savefig(self.PIC_DIR + self.test_name + '-HP-Stranded.png')
 
 
 class Memory_Stat:
     def __init__(self, DIR):
         self.DIR = DIR
+        self.PIC_DIR = "pic/"
         self.date = ''
         self.test_name = ''
         self.memo = ''
@@ -113,23 +117,18 @@ class Memory_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("Mem usage")
         plt.title(self.date + " " + self.test_name + " " + self.memo)
-        plt.show()
+        # plt.show()
+        plt.savefig(self.PIC_DIR + self.test_name + '-Mem-Usage.png')
 
 mem_dir = "/home/minh/Desktop/tcmalloc/bench-results/smem/"
 stat_dir = "/home/minh/Desktop/tcmalloc/bench-results/stats/"
-tests = ["redis-set", "redis-get"]
-release_rates = ["0-MB", "10-MB"]
+tests = ["PING_INLINE", "PING_MBULK", "INCR", "LPUSH", "RPUSH", "LPOP", "RPOP",
+        "SADD","SET", "GET", "MSET", "LRANGE"]
+release_rates = ["0MB"]
 
 for test_name in tests:
     for rate in release_rates:
-        if test_name == "redis-set":
-            current_stat_dir = stat_dir + "set" + "/" + rate
-            current_mem_dir = mem_dir + "set" + "/" + rate
-        elif test_name == "redis-get":
-            current_stat_dir = stat_dir + "get" + "/" + rate
-            current_mem_dir = mem_dir + "get" + "/" + rate
-        else:
-            current_stat_dir = stat_dir + test_name + "/" + rate
-            current_mem_dir = mem_dir + test_name + "/" + rate
+        current_stat_dir = stat_dir + test_name + "/" + rate
+        current_mem_dir = mem_dir + test_name + "/" + rate
         test_bench_stat = Benchmark_Stat(current_stat_dir, test_name + "-" + rate)
         test_mem_stat = Memory_Stat(current_mem_dir)

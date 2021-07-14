@@ -2389,8 +2389,7 @@ class BackgroundWorker{
 
     }
     static void Init(){
-      const char *progname[] = {"redis-server", "hello_world", "canneal", "streamcluster"};
-      bool valid_progname = false;
+      const char *progname[] = {"redis-server", "hello_world", "firefox"};
       for(const char *x: progname) {
         if(strcmp(__progname, x) == 0) {
           std::thread(write_stats_to_file).detach();

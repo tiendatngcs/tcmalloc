@@ -105,10 +105,11 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
     getSizeAndFrequency(profile, malloc_size, freq);
     
     // start redis
-    if(test_suite.compare("redis") == 0) {
+    if(test_suite.compare("redis") == 0)
         std::system("./redis/start_redis.sh");
-        sleep(5);
-    }
+    else
+        std::system("./firefox/start_firefox.sh");
+    exit(1);
 
     // populating
     srand(time(NULL));
@@ -158,11 +159,7 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
         std::string stat_string = "./redis/stat.sh " + test_name + " " + release_rate;
         const char* stat_shell = stat_string.c_str();
         std::system(stat_shell);
-    }
-
-    // kill redis server if neccessary
-    if(test_suite.compare("redis") == 0)
-    {
+        // kill redis server if neccessary
         std::system("./redis/stop_redis.sh");
         // delete dumb.rdb
         std::system("rm /home/minh/Desktop/redis/src/dump.rdb");
@@ -9704,7 +9701,7 @@ int main() {
     };
 
     // redis test
-    std::string test_suite = "redis";
+    std::string test_suite = "firefox";
     std::string release_rate = "0MB";
 
     // PING_INLINE, PING_MBULK: basically, "inline" is the old pre-RESP format 
@@ -9720,10 +9717,12 @@ int main() {
 
     std::string test_name = "LRANGE";
     // profiler
-    std::thread(smem, test_suite, test_name, release_rate).detach();
+    // std::thread(smem, test_suite, test_name, release_rate).detach();
     // bench
-    bench(Beta, test_suite, test_name, release_rate);
+    // bench(Beta, test_suite, test_name, release_rate);
     // kill profiler
-    std::system("killall sh -c ./memprofile.sh");
+    // std::system("killall sh -c ./memprofile.sh");
+
+    bench(Beta, test_suite, test_name, release_rate);
     return 0;
 }

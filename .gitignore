@@ -4,6 +4,8 @@ bazel-*
 
 test/*
 
+stats/*
+
 bench-results/stats/*
 bench-results/smem/*
 bench-results/bench_profile
