@@ -31,6 +31,9 @@
 #include "tcmalloc/span.h"
 #include "tcmalloc/stats.h"
 
+// Dat mod
+#include "tcmalloc/huge_allocator.h"
+
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
 namespace tcmalloc_internal {
@@ -97,6 +100,9 @@ class PageAllocator {
   };
 
   Algorithm algorithm() const { return alg_; }
+
+  // Dat mod
+  const HugeAllocator* huge_allocator() const;
 
  private:
   bool ShrinkHardBy(Length pages) ABSL_EXCLUSIVE_LOCKS_REQUIRED(pageheap_lock);
@@ -211,6 +217,10 @@ inline int64_t PageAllocator::limit_hits() const {
 
 inline const PageAllocInfo& PageAllocator::info(MemoryTag tag) const {
   return impl(tag)->info();
+}
+
+inline const HugeAllocator* PageAllocator::huge_allocator() const {
+  return choices_[0].hpaa.huge_allocator();
 }
 
 }  // namespace tcmalloc_internal

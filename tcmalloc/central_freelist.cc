@@ -24,6 +24,9 @@
 #include "tcmalloc/pages.h"
 #include "tcmalloc/static_vars.h"
 
+// Dat mod
+#include "tcmalloc/huge_pages.h"
+
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
 namespace tcmalloc_internal {
@@ -188,6 +191,7 @@ int CentralFreeList::Populate(void** batch,
     nonempty_.prepend(span);
   }
   RecordSpanAllocated();
+  HugePageContaining(span->first_page()).add_numFree(objects_per_span);
   return result;
 }
 

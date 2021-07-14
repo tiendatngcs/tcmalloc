@@ -21,15 +21,25 @@
 #include <stddef.h>
 #include <stdint.h>
 
+//Dat mod
+#include <inttypes.h>
+
 #include <cmath>
 #include <limits>
 #include <ostream>
 #include <utility>
 
+// Dat mod
+#include <string>
+#include <atomic>
+
 #include "tcmalloc/common.h"
 #include "tcmalloc/internal/logging.h"
 #include "tcmalloc/internal/optimization.h"
 #include "tcmalloc/pages.h"
+
+// Dat mod
+#include "tcmalloc/internal/atomic_stats_counter.h"
 
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
@@ -40,6 +50,13 @@ inline constexpr Length kPagesPerHugePage =
 
 // A single aligned huge page.
 struct HugePage {
+  uintptr_t pn; // Hugepage index
+  // Dat mod
+  size_t numLive = 0; // Number of objects that are being used by the app
+  size_t numIdle = 0; // Number of objects that are stucked in the CPU cache
+  size_t numFree = 0; // Number of objects that are free in the cfl or transfer cache?
+  // Dat mod ends
+
   void *start_addr() const {
     ASSERT(pn <= kMaxPageNumber);
     return reinterpret_cast<void *>(pn << kHugePageShift);
@@ -58,7 +75,63 @@ struct HugePage {
   static constexpr uintptr_t kMaxPageNumber =
       std::numeric_limits<uintptr_t>::max() >> kHugePageShift;
 
-  uintptr_t pn;
+
+  // Dat mod
+
+  void add_numLive(size_t count){
+    numLive += count;
+  }
+  void add_numIdle(size_t count){
+    numIdle += count;
+  }
+  void add_numFree(size_t count){
+    numFree += count;
+  }
+
+  void move_to_free_from_pageheap(size_t count){
+    numFree += count;
+  }
+
+  void move_to_free_from_idle(size_t count){
+    numFree += count;
+    numIdle -= count;
+  }
+
+  void move_to_idle_from_free(size_t count){
+    // ASSERT(count <= numFree);
+    numFree -= count;
+    numIdle += count;
+  }
+
+  void move_to_idle_from_live(size_t count){
+    // ASSERT(count <= numLive);
+    numLive -= count;
+    numIdle += count;
+  }
+
+  void move_to_live(size_t count){
+    // ASSERT(count <= numIdle);
+    numIdle -= count;
+    numLive += count;
+  }
+
+  size_t get_num_live() const{
+    return numLive;
+  }
+  size_t get_num_idle() const{
+    return numIdle;
+  }
+  size_t get_num_free() const{
+    return numFree;
+  }
+  void print_object_status(Printer* out) const{
+    out->printf("-----------------------------\n");
+    out->printf("Object status of Hugepage %" PRIxPTR ":\n", pn);
+    out->printf("\tLive: %d\n\tIdle: %d\n\tFree: %d", numLive, numIdle, numFree);
+    out->printf("-----------------------------\n");
+  }
+  // Dat mod ends
+
 };
 
 struct HugeLength {
@@ -308,6 +381,15 @@ struct HugeRange {
   }
 
   static HugeRange Make(HugePage p, HugeLength n) { return {p, n}; }
+
+  // Dat mods
+  using Value = int64_t;
+
+  
+
+  // std::atomic<Value> size_live; // Amount of mem used by app
+  // std::atomic<Value> size_idle; // Amount of mem locating in CPU cache
+  // std::atomic<Value> size_free; // Amount of mem free in cfl or transfer cache
 
   HugePage first;
   HugeLength n;

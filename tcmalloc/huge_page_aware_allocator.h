@@ -99,6 +99,7 @@ class HugePageAwareAllocator final : public PageAllocatorInterface {
   }
 
   const HugeCache* cache() const { return &cache_; }
+  const HugeAllocator* huge_allocator() const { return &alloc_;}
 
  private:
   typedef HugePageFiller<PageTracker<SystemRelease>> FillerType;
