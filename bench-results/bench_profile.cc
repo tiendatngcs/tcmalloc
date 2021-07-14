@@ -113,7 +113,7 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
     // populating
     srand(time(NULL));
     int n = malloc_size.size();
-    int LOOP_COUNT = 10;
+    int LOOP_COUNT = 30;
     for (int i = 0; i < LOOP_COUNT; i++)
     {
         // generate random class size and populate redis
@@ -121,10 +121,11 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
         // for redis set we need to populate and flush it everytime
         if(test_name.compare("set") == 0)
         {
-            std::string set_string = "./redis/bench.sh set " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 900000 + 100000);
+            std::string set_string = "./redis/bench.sh set " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 500000 + 100000);
             const char* set_shell = set_string.c_str();
             std::cout << "Round: " << i << " Running redis set: " << set_shell << std::endl;
             std::system(set_shell);
+            sleep(10);
         }
         // for other test we just need to popuplate it
         else
@@ -133,6 +134,7 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
             const char* populate_shell = populate_string.c_str();
             std::cout << "Round: " << i << " Populating: " << populate_shell << std::endl;
             std::system(populate_shell);
+            sleep(5);
         }
     };
 
@@ -142,10 +144,11 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
         {
             // generate random class size and populate redis
             size_t sizeMalloc = myRand(malloc_size, freq, n);
-            std::string set_string = "./redis/bench.sh " + test_name + " " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 90000 + 10000);
-            const char* set_shell = set_string.c_str();
-            std::cout << "Round: " << i << " Running redis " << test_name << ": " << set_shell << std::endl;
-            std::system(set_shell);
+            std::string test_string = "./redis/bench.sh " + test_name + " " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 50000 + 10000);
+            const char* test_shell = test_string.c_str();
+            std::cout << "Round: " << i << " Running redis " << test_name << ": " << test_shell << std::endl;
+            std::system(test_shell);
+            sleep(5);
         }
     }
 
@@ -159,7 +162,11 @@ static void bench(std::vector<bench_profile> profile, std::string test_suite, st
 
     // kill redis server if neccessary
     if(test_suite.compare("redis") == 0)
+    {
         std::system("./redis/stop_redis.sh");
+        // delete dumb.rdb
+        std::system("rm /home/minh/Desktop/redis/src/dump.rdb");
+    }
 }
 
 int main() {
@@ -9696,18 +9703,26 @@ int main() {
         {15922538564, 3.7295341811807706e-06, 3.7262683285823413e-05},
     };
 
-    // available_test: PING_INLINE, PINT_BULK, SET, GET, INCR, SADD, Lrange_300, LRANFE_600, LPUSH, RPUSH,
-    // LPOP, RPOP, MSET, LPUSH, LRANGE
+    // redis test
     std::string test_suite = "redis";
-    std::string test_name = "PING_INLINE";
     std::string release_rate = "0MB";
 
+    // PING_INLINE, PING_MBULK: basically, "inline" is the old pre-RESP format 
+    // useful if all you have is "telnet" or a similar shell tool, and "mbulk" 
+    // is the "proper" format (binary safe, etc).
+    // INCR: increase the value stored at the key by 1.
+    // LPUSH, RPUSH: push to head, tail.
+    // LPOP, RPOP: pop at head, tail.
+    // SADD: Add the specified members to the set stored at key.
+    // SET, GET: Set, get key to hold the string value.
+    // MSET: Sets the given keys to their respective values.
+    // LRANGE: Returns the specified elements of the list stored at key.
+
+    std::string test_name = "LRANGE";
     // profiler
     std::thread(smem, test_suite, test_name, release_rate).detach();
-
     // bench
     bench(Beta, test_suite, test_name, release_rate);
-
     // kill profiler
     std::system("killall sh -c ./memprofile.sh");
     return 0;
