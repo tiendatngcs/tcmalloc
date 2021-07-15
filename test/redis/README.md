@@ -19,6 +19,12 @@
              :
 
 ```
+Requirements
+```
+make
+bazel
+# make sure the redis folder is 'redis', without trailing version numbers.
+```
 ## 1. Build tcmalloc
 ```shell
 ../../build.sh
@@ -30,13 +36,14 @@
 cd ../../../redis/src
 ```
 * open Makefile file
-* add the following lines to line 240 in Makefile
+* add the following lines to line 235 in Makefile
 ```makefile
 
 # Dat mod
 ifeq ($(MALLOC), libc)
 	FINAL_LIBS+= $(MALLOC_LIB)
 endif
+# Dat mod ends
 
 ```
 ## 3. Build redis

@@ -113,7 +113,7 @@ cc_binary(
         "tcmalloc.h",
     ],
     copts = ["-g"]+TCMALLOC_DEFAULT_COPTS,
-    linkstatic = 0, # Dynamic linking
+    linkstatic = 1, # Dynamic linking
     linkshared= 1, # Craete shared lib
     visibility = ["//visibility:public"],
     deps = tcmalloc_deps + [
@@ -203,6 +203,7 @@ common_srcs = [
     "huge_page_aware_allocator.cc",
     "huge_page_aware_allocator.h",
     "huge_page_filler.h",
+    "huge_pagemap.h", # Dat mod
     "huge_pages.h",
     "page_allocator.cc",
     "page_allocator.h",
@@ -248,6 +249,7 @@ common_hdrs = [
     "tcmalloc_policy.h",
     "huge_cache.h",
     "huge_page_filler.h",
+    "huge_pagemap.h", # Dat mod
     "huge_pages.h",
     "huge_region.h",
     "huge_page_aware_allocator.h",
