@@ -6,6 +6,8 @@ test/redis/stats/*
 test/hello_world/stats/*
 
 
+stats/*
+
 bench-results/stats/*
 bench-results/smem/*
 bench-results/bench_profile
