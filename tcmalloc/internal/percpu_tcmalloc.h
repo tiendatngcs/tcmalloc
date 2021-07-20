@@ -534,9 +534,12 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE bool TcmallocSlab<Shift, NumClasses>::Push(
     result = TcmallocSlab_Internal_Push(slabs_, cl, item, Shift, f) >= 0;
   }
 #endif
-  // HugePageContaining(item).move_to_idle_from_live(1);
-  // to be changed
-  
+  // Dat mod
+  // Move to Idle from Live
+  size_t object_size = Static::sizemap().class_to_size(cl);
+  Static::huge_pagemap().add_live_size(HugePageContaining(item), -1 * object_size);
+  Static::huge_pagemap().add_idle_size(HugePageContaining(item), object_size);
+  // Dat mod ends
   return result;
 }
 
@@ -815,8 +818,12 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE void* TcmallocSlab<Shift, NumClasses>::Pop(
     result = TcmallocSlab_Internal_Pop(slabs_, cl, f, Shift);
   }
 #endif
-  // HugePageContaining(result).move_to_live(1);
-  // to to changed
+  // Dat mod
+  // Moving to Live from Idle
+  size_t object_size = Static::sizemap().class_to_size(cl);
+  Static::huge_pagemap().add_idle_size(HugePageContaining(result), -1 * object_size);
+  Static::huge_pagemap().add_live_size(HugePageContaining(result), object_size);
+  // Dat mod ends
   return result;
 }
 

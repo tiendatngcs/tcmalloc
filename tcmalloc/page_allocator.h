@@ -33,7 +33,6 @@
 
 // Dat mod
 #include "tcmalloc/huge_allocator.h"
-#include "tcmalloc/huge_pagemap.h"
 
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
@@ -104,7 +103,7 @@ class PageAllocator {
 
   // Dat mod
   const HugeAllocator* huge_allocator() const;
-  const HugePageMap* huge_pagemap() const;
+  // HugePageMap* huge_pagemap();
 
  private:
   bool ShrinkHardBy(Length pages) ABSL_EXCLUSIVE_LOCKS_REQUIRED(pageheap_lock);
@@ -126,7 +125,7 @@ class PageAllocator {
   Algorithm alg_;
 
   // Dat mod
-  HugePageMap huge_page_map_ = HugePageMap(); 
+  // HugePageMap huge_page_map_ = HugePageMap();s
   // Dat mod ends
 
   bool limit_is_hard_{false};
@@ -230,9 +229,9 @@ inline const HugeAllocator* PageAllocator::huge_allocator() const {
   return choices_[0].hpaa.huge_allocator();
 }
 
-inline const HugePageMap* PageAllocator::huge_pagemap() const{
-  return &huge_page_map_;
-}
+// HugePageMap* PageAllocator::huge_pagemap(){
+//   return &huge_page_map_;
+// }
 // Dat mod ends
 
 }  // namespace tcmalloc_internal

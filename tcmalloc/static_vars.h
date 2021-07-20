@@ -36,6 +36,7 @@
 #include "tcmalloc/arena.h"
 #include "tcmalloc/common.h"
 #include "tcmalloc/guarded_page_allocator.h"
+#include "tcmalloc/huge_pagemap.h" // Dat mod
 #include "tcmalloc/internal/atomic_stats_counter.h"
 #include "tcmalloc/internal/logging.h"
 #include "tcmalloc/internal/percpu.h"
@@ -85,6 +86,8 @@ class Static {
   }
 
   static PageMap& pagemap() { return pagemap_; }
+
+  static HugePageMap& huge_pagemap() { return huge_pagemap_; }
 
   static GuardedPageAllocator& guardedpage_allocator() {
     return guardedpage_allocator_;
@@ -173,6 +176,7 @@ class Static {
 
   static PageAllocatorStorage page_allocator_;
   static PageMap pagemap_;
+  static HugePageMap huge_pagemap_;
 };
 
 inline bool Static::IsInited() {
