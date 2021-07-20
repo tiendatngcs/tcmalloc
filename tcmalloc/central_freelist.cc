@@ -191,7 +191,7 @@ int CentralFreeList::Populate(void** batch,
     nonempty_.prepend(span);
   }
   RecordSpanAllocated();
-  HugePageContaining(span->first_page()).add_numFree(objects_per_span);
+  // HugePageContaining(span->first_page()).add_numFree(objects_per_span); // Dat mod
   return result;
 }
 

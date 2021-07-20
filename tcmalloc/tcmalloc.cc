@@ -2405,33 +2405,33 @@ class BackgroundWorker{
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
 namespace tcmalloc_internal {
-  class ProgEndTasks{
+  // class ProgEndTasks{
 
-  public:
-    void get_hugepage_object_status(){
-      // Getting huge addressmap
-      // char ret[1 << 22];
-      // Printer out = Printer(ret, 1 << 22); // Bug
-      HugeAddressMap::Node* current_node = Static::page_allocator().huge_allocator()->huge_address_map().first();
-      HugeLength idx;
-      do{
-        HugeRange r = current_node->range();
-        for (double i = 0; i < r.len().raw_num(); i++){
-          idx = HugeLength(i);
-          HugePage p = r[idx];
-          // p.print_object_status(&out);
-        }
-        current_node = current_node->next();
-      } while(current_node != nullptr);
-      // printf("%s", &ret[0]);
-      // return ret;
-    }
+  // public:
+  //   void get_hugepage_object_status(){
+  //     // Getting huge addressmap
+  //     // char ret[1 << 22];
+  //     // Printer out = Printer(ret, 1 << 22); // Bug
+  //     HugeAddressMap::Node* current_node = Static::page_allocator().huge_allocator()->huge_address_map().first();
+  //     HugeLength idx;
+  //     do{
+  //       HugeRange r = current_node->range();
+  //       for (double i = 0; i < r.len().raw_num(); i++){
+  //         idx = HugeLength(i);
+  //         HugePage p = r[idx];
+  //         // p.print_object_status(&out);
+  //       }
+  //       current_node = current_node->next();
+  //     } while(current_node != nullptr);
+  //     // printf("%s", &ret[0]);
+  //     // return ret;
+  //   }
 
-    void dummy(){
-      HugeAddressMap::Node* current_node = Static::page_allocator().huge_allocator()->huge_address_map().first();
-      current_node->range();
-    }
-  };
+  //   void dummy(){
+  //     HugeAddressMap::Node* current_node = Static::page_allocator().huge_allocator()->huge_address_map().first();
+  //     current_node->range();
+  //   }
+  // };
 namespace {
 
 // The constructor allocates an object to ensure that initialization

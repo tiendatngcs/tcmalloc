@@ -534,7 +534,9 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE bool TcmallocSlab<Shift, NumClasses>::Push(
     result = TcmallocSlab_Internal_Push(slabs_, cl, item, Shift, f) >= 0;
   }
 #endif
-  HugePageContaining(item).move_to_idle_from_live(1);
+  // HugePageContaining(item).move_to_idle_from_live(1);
+  // to be changed
+  
   return result;
 }
 
@@ -813,7 +815,8 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE void* TcmallocSlab<Shift, NumClasses>::Pop(
     result = TcmallocSlab_Internal_Pop(slabs_, cl, f, Shift);
   }
 #endif
-  HugePageContaining(result).move_to_live(1);
+  // HugePageContaining(result).move_to_live(1);
+  // to to changed
   return result;
 }
 

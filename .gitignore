@@ -2,7 +2,9 @@ bazel-*
 
 .vscode/*
 
-test/*
+test/redis/stats/*
+test/hello_world/stats/*
+
 
 stats/*
 
