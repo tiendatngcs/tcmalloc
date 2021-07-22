@@ -12,9 +12,6 @@ echo -ne "dbsize: "; ./redis-cli dbsize
 if [ $TEST != "LPUSH" ] && [ $TEST != "RPUSH" ]
 then
     echo "Deallocate"
-    cd $CURRENT_DIR/redis
-    echo $(pwd)
-    ./deallocate.sh $(($NUM / 2))
 else
     if [ "$TEST" = "LPUSH" ]
     then
@@ -25,8 +22,8 @@ else
         ./redis-benchmark -t RPOP -c 1000 -r $NUM -d $MALLOC_SIZE -n $NUM -q
     fi
 fi
-cd $REDIS_SRC
-echo -ne "purging memory "; ./redis-cli MEMORY PURGE
-sleep 15
-echo -ne "dbsize: "; ./redis-cli dbsize
+# cd $REDIS_SRC
+# echo -ne "purging memory "; ./redis-cli MEMORY PURGE
+# sleep 5
+# echo -ne "dbsize: "; ./redis-cli dbsize
 echo "------------------------------------------"
