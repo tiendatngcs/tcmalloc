@@ -23,8 +23,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <thread>
-#include <chrono>
-#include <numeric>
 
 struct bench_profile
 {
@@ -38,8 +36,7 @@ struct bench_profile
 };
 
 // utility function to find ceiling of r in arr[l..h]
-int findCeil(int prefix[], int r, int l, int h)
-{
+int findCeil(int prefix[], int r, int l, int h) {
     int mid;
     while (l < h)
     {
@@ -52,8 +49,7 @@ int findCeil(int prefix[], int r, int l, int h)
 // the main function that returns a random number
 // from arr[] according to distribution array
 // defined by freq[]. n is size of arrays.
-int myRand(std::vector<size_t> arr, std::vector<int> freq, int n)
-{
+int myRand(std::vector<size_t> arr, std::vector<int> freq, int n) {
     // Create and fill prefix array
     int prefix[n];
     int i;
@@ -69,11 +65,6 @@ int myRand(std::vector<size_t> arr, std::vector<int> freq, int n)
     // Find index of ceiling of r in prefix array
     int indexc = findCeil(prefix, r, 0, n - 1);
 
-    // std:: ofstream myfile;
-    // myfile.open("index_value.txt", std::ios_base::app);
-    // myfile << "index: " << indexc << " value: " << arr[indexc] << "\n";
-    // myfile.close();
-
     return arr[indexc];
 }
 
@@ -81,51 +72,69 @@ int myRand(std::vector<size_t> arr, std::vector<int> freq, int n)
 void getStats(std::vector<bench_profile> profile, 
               std::vector<size_t> &sizeVec, 
               std::vector<int> &freqVec,
-              std::vector<int> &numLivesVec) {
+              std::map<size_t, int> &numLivesMap) {
     int s = profile.size();
     for(int i = 0; i < s; i++) {
         sizeVec.push_back(std::ceil(profile[i].size));
         freqVec.push_back(std::ceil(profile[i].alloc_rate));
-        numLivesVec.push_back(std::ceil(profile[i].num_live));
+        numLivesMap[profile[i].size] += std::ceil(profile[i].num_live);
     }
-
-    // std:: ofstream myfile("distribution.txt");
-    // for(int i = 0; i < sizeVec.size(); i++) {
-    //     myfile << sizeVec[i] << " " << std::setprecision(10) << freqVec[i] << "\n";
-    // }
-    // myfile.close();
 }
 
 // run the memory profiler
 static void smem(std::string testSuite, std::string testName, std::string releaseRate) {
+    printf("%d\n", round);
     std::string profile_string = "./memprofile.sh " + testName + " " + releaseRate;
     const char* profile_shell = profile_string.c_str();
     std::system(profile_shell);
 }
 
 // randomly deallocate every 3 to 5 minute
-static void deallocate(std::vector<int> numLivesVec, std::map<size_t, int> currentObjCount) {
-    printf("Deallocating...\n");
-    if(!currentObjCount.size()) {
-        printf("Nothing to do. Going back to sleep...\n");
-    } else {
-        printf("Done. Going back to sleep...\n");
+static void deallocate(std::map<size_t, int> numLivesMap, std::map<size_t, int> &currentObjCount) {
+    while(1)
+    {
+        sleep(rand() % 30 + 18);
+        if(!currentObjCount.size()) {
+            printf("Nothing to do. Going back to sleep...\n");
+        } else {
+            printf("Deallocating...\n");
+            // check current allocation and adjust them accordingly to the profile
+            for(auto itr = currentObjCount.begin(); itr != currentObjCount.end(); ++itr) {
+                // printf("Current: %ld %d\n", itr->first, itr->second);
+                // printf("Profile: %ld %d\n", itr->first, numLivesMap[itr->first]);
+                // we will deallocate by the difference of the profile num lives and the current num of a given sizeclass
+                if(itr->second < numLivesMap[itr->first])
+                    continue;
+                int deallocateNum = abs(numLivesMap[itr->first] - itr->second) + rand() % numLivesMap[itr->first] / 2 + 1;
+
+                // run deallocate shell
+                std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) +
+                                                " " + std::to_string(itr->first);
+                const char* deallocate = deallocate_string.c_str();
+                std::cout << deallocate << std::endl;
+                std::system(deallocate);
+
+                // update the real value in the current count by substracting the number of deallocation and
+                // a random number betweem 1 and half of the limit of the current size
+                itr->second -= deallocateNum;
+            }
+            printf("Done. Going back to sleep...\n");
+        }
     }
-    std::chrono::milliseconds sleepTime{rand() % 1};
-    std::chrono::system_clock::time_point currentTime(std::chrono::system_clock::now());
-    std::this_thread::sleep_for(sleepTime);
 }
 
 static void bench(std::vector<bench_profile> profile, std::string testSuite, std::string testName, std::string releaseRate) {
     std::vector<size_t> mallocSize;
     std::vector<int> freq;
-    std::vector<int> numLives; // the total living object with size x
+    std::map<size_t, int> numLives; // the total living object with size x
     getStats(profile, mallocSize, freq, numLives);
     std::map<size_t, int> objCount;
     srand(time(NULL));
+    int round = 0;
 
     // start deallocating thread
-    std::thread(deallocate, numLives, objCount).detach();
+    std::thread(deallocate, numLives, std::ref(objCount)).detach();
+
     // start redis
     if(testSuite.compare("redis") == 0)
     {
@@ -141,37 +150,45 @@ static void bench(std::vector<bench_profile> profile, std::string testSuite, std
     {
         int n = mallocSize.size();
         int LOOP_COUNT = 5;
-        int first = 0;
-        int last = 0;
-        for (int i = 0; i < LOOP_COUNT; i++) {
+        for (round; round < LOOP_COUNT; round++) {
             // generate random class size and populate redis
             size_t sizeMalloc = myRand(mallocSize, freq, n);
+
             // for redis bench we need to populate and flush it
-            int mallocCount = rand() % 90000 + 10000;
+            int mallocCount = rand() % 100000 + 10000;
             std::string bench_string = "./redis/bench.sh " + testName + " " + std::to_string(sizeMalloc) +
                                        " " + std::to_string(mallocCount);
             const char* bench_shell = bench_string.c_str();
-            std::cout << "Round: " << i << " Running redis " << testName << ": "<< bench_shell << std::endl;
+            time_t now = time(NULL);
+	        tm* tm_t = localtime(&now);
+            std::cout << tm_t->tm_hour << ":" << tm_t->tm_min << ":" << tm_t->tm_sec << " Round " << round <<
+            ": Running redis " << testName << ": "<< bench_shell << std::endl;
             std::system(bench_shell);
             objCount[sizeMalloc] += mallocCount;
-            // sleep(5);
+            sleep(10);
         };
 
         // moving stat file
         std::string stat_string = "./redis/stat.sh " + testName + " " + releaseRate;
         const char* stat_shell = stat_string.c_str();
         std::system(stat_shell);
+
         // kill redis server if neccessary
         std::system("./redis/stop_redis.sh");
+
         // delete dumb.rdb
         std::system("rm /home/minh/Desktop/redis/src/dump.rdb");
     }
+
     // moving stat file for firefox
     else if(testSuite.compare("firefox") == 0) {
         std::string stat_string = "./firefox/stat.sh " + releaseRate;
         const char* stat_shell = stat_string.c_str();
         std::system(stat_shell);
     }
+
+    // kill profiler
+    std::system("killall sh -c ./memprofile.sh");
 }
 
 int main() {
@@ -9718,14 +9735,10 @@ int main() {
     // LRANGE: Returns the specified elements of the list stored at key.
 
     std::string testName = "SET";
-
     // profiler
     std::thread(smem, testSuite, testName, releaseRate).detach();
 
     // bench
     bench(Beta, testSuite, testName, releaseRate);
-
-    // kill profiler
-    std::system("killall sh -c ./memprofile.sh");
     return 0;
 }
