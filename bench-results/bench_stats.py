@@ -11,7 +11,7 @@ from natsort import natsorted
 class Benchmark_Stat:
     def __init__(self, DIR, test_name):
         self.DIR = DIR
-        self.PIC_DIR = "pic/"
+        self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
         self.test_name = test_name
 
         self.pattern1 = "Total(\s*)\d+ Hugepage\(s\) stranded in all cpu caches."
@@ -68,22 +68,26 @@ class Benchmark_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("num(s) page")
         plt.title("Huge Page Usage in " + self.test_name)
-        # plt.show()
-        plt.savefig(self.PIC_DIR + self.test_name + '-HP-Usage.png')
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Usage.png'), dpi = 100)
+        plt.show()
     
     def plot_percentage(self):
         plt.plot(self.percentage, label="Percentage")
         plt.xlabel("time (s)")
         plt.ylabel("%")
         plt.title("% Huge Page Stranded in " + self.test_name)
-        # plt.show()
-        plt.savefig(self.PIC_DIR + self.test_name + '-HP-Stranded.png')
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Stranded.png'), dpi = 100)
+        plt.show()
 
 
 class Memory_Stat:
     def __init__(self, DIR):
         self.DIR = DIR
-        self.PIC_DIR = "pic/"
+        self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
         self.date = ''
         self.test_name = ''
         self.memo = ''
@@ -95,9 +99,9 @@ class Memory_Stat:
         latest_file = max(file_list, key=os.path.getctime)
 
         f = open(latest_file, "r")
-        self.date = f.readline()
         self.test_name = f.readline()
         self.memo = f.readline()
+        self.date = f.readline()
         columns = f.readline().split()[1:]
         data = list()
 
@@ -117,13 +121,15 @@ class Memory_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("Mem usage")
         plt.title(self.date + " " + self.test_name + " " + self.memo)
-        # plt.show()
-        plt.savefig(self.PIC_DIR + self.test_name + '-Mem-Usage.png')
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-Mem-Usage.png'), dpi = 100)
+        plt.show()
 
 mem_dir = "/home/minh/Desktop/tcmalloc/bench-results/smem/"
 stat_dir = "/home/minh/Desktop/tcmalloc/bench-results/stats/"
 tests = ["PING_INLINE", "PING_MBULK", "INCR", "LPUSH", "RPUSH", "LPOP", "RPOP",
-        "SADD","SET", "GET", "MSET", "LRANGE"]
+        "SADD","SET", "GET", "MSET", "LRANGE", "firefox"]
 release_rates = ["0MB"]
 
 for test_name in tests:

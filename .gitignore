@@ -8,6 +8,9 @@ test/hello_world/stats/*
 
 stats/*
 
+profile/* 
+
 bench-results/stats/*
 bench-results/smem/*
+bench-results/pic/*
 bench-results/bench_profile

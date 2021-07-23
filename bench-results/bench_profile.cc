@@ -23,7 +23,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <thread>
-#include <chrono>
 
 struct bench_profile
 {
@@ -37,8 +36,7 @@ struct bench_profile
 };
 
 // utility function to find ceiling of r in arr[l..h]
-int findCeil(int prefix[], int r, int l, int h)
-{
+int findCeil(int prefix[], int r, int l, int h) {
     int mid;
     while (l < h)
     {
@@ -51,8 +49,7 @@ int findCeil(int prefix[], int r, int l, int h)
 // the main function that returns a random number
 // from arr[] according to distribution array
 // defined by freq[]. n is size of arrays.
-int myRand(std::vector<size_t> arr, std::vector<int> freq, int n)
-{
+int myRand(std::vector<size_t> arr, std::vector<int> freq, int n) {
     // Create and fill prefix array
     int prefix[n];
     int i;
@@ -68,102 +65,130 @@ int myRand(std::vector<size_t> arr, std::vector<int> freq, int n)
     // Find index of ceiling of r in prefix array
     int indexc = findCeil(prefix, r, 0, n - 1);
 
-    // std:: ofstream myfile;
-    // myfile.open("index_value.txt", std::ios_base::app);
-    // myfile << "index: " << indexc << " value: " << arr[indexc] << "\n";
-    // myfile.close();
-
     return arr[indexc];
 }
 
 // get the size and frequency from a profile
-void getSizeAndFrequency(std::vector<bench_profile> profile, 
-                                    std::vector<size_t> &size_vec, 
-                                    std::vector<int> &freq_vec) {
+void getStats(std::vector<bench_profile> profile, 
+              std::vector<size_t> &sizeVec, 
+              std::vector<int> &freqVec,
+              std::map<size_t, int> &numLivesMap) {
     int s = profile.size();
     for(int i = 0; i < s; i++) {
-        size_vec.push_back(std::ceil(profile[i].size));
-        freq_vec.push_back(std::ceil(profile[i].alloc_rate));
+        sizeVec.push_back(std::ceil(profile[i].size));
+        freqVec.push_back(std::ceil(profile[i].alloc_rate));
+        numLivesMap[profile[i].size] += std::ceil(profile[i].num_live);
     }
-
-    // std:: ofstream myfile("distribution.txt");
-    // for(int i = 0; i < size_vec.size(); i++) {
-    //     myfile << size_vec[i] << " " << std::setprecision(10) << freq_vec[i] << "\n";
-    // }
-    // myfile.close();
 }
 
-static void smem(std::string test_suite, std::string test_name, std::string release_rate) {
-    std::string profile_string = "./memprofile.sh " + test_name + " " + release_rate;
+// run the memory profiler
+static void smem(std::string testSuite, std::string testName, std::string releaseRate) {
+    printf("%d\n", round);
+    std::string profile_string = "./memprofile.sh " + testName + " " + releaseRate;
     const char* profile_shell = profile_string.c_str();
     std::system(profile_shell);
 }
 
-static void bench(std::vector<bench_profile> profile, std::string test_suite, std::string test_name, std::string release_rate) {
-    std::vector<size_t> malloc_size;
-    std::vector<int> freq;
-    getSizeAndFrequency(profile, malloc_size, freq);
-    
-    // start redis
-    if(test_suite.compare("redis") == 0)
-        std::system("./redis/start_redis.sh");
-    else
-        std::system("./firefox/start_firefox.sh");
-    exit(1);
-
-    // populating
-    srand(time(NULL));
-    int n = malloc_size.size();
-    int LOOP_COUNT = 30;
-    for (int i = 0; i < LOOP_COUNT; i++)
+// randomly deallocate every 3 to 5 minute
+static void deallocate(std::map<size_t, int> numLivesMap, std::map<size_t, int> &currentObjCount) {
+    while(1)
     {
-        // generate random class size and populate redis
-        size_t sizeMalloc = myRand(malloc_size, freq, n);
-        // for redis set we need to populate and flush it everytime
-        if(test_name.compare("set") == 0)
-        {
-            std::string set_string = "./redis/bench.sh set " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 500000 + 100000);
-            const char* set_shell = set_string.c_str();
-            std::cout << "Round: " << i << " Running redis set: " << set_shell << std::endl;
-            std::system(set_shell);
-            sleep(10);
-        }
-        // for other test we just need to popuplate it
-        else
-        {
-            std::string populate_string = "./redis/populate_redis.sh " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 90000 + 10000);
-            const char* populate_shell = populate_string.c_str();
-            std::cout << "Round: " << i << " Populating: " << populate_shell << std::endl;
-            std::system(populate_shell);
-            sleep(5);
-        }
-    };
+        sleep(rand() % 30 + 18);
+        if(!currentObjCount.size()) {
+            printf("Nothing to do. Going back to sleep...\n");
+        } else {
+            printf("Deallocating...\n");
+            // check current allocation and adjust them accordingly to the profile
+            for(auto itr = currentObjCount.begin(); itr != currentObjCount.end(); ++itr) {
+                // printf("Current: %ld %d\n", itr->first, itr->second);
+                // printf("Profile: %ld %d\n", itr->first, numLivesMap[itr->first]);
+                // we will deallocate by the difference of the profile num lives and the current num of a given sizeclass
+                if(itr->second < numLivesMap[itr->first])
+                    continue;
+                int deallocateNum = abs(numLivesMap[itr->first] - itr->second) + rand() % numLivesMap[itr->first] / 2 + 1;
 
-    // if the we are not using set then we need to do other benchmark
-    if(test_name.compare("set") != 0) {
-        for (int i = 0; i < LOOP_COUNT; i++)
-        {
-            // generate random class size and populate redis
-            size_t sizeMalloc = myRand(malloc_size, freq, n);
-            std::string test_string = "./redis/bench.sh " + test_name + " " + std::to_string(sizeMalloc) + " " + std::to_string(rand() % 50000 + 10000);
-            const char* test_shell = test_string.c_str();
-            std::cout << "Round: " << i << " Running redis " << test_name << ": " << test_shell << std::endl;
-            std::system(test_shell);
-            sleep(5);
+                // run deallocate shell
+                std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) +
+                                                " " + std::to_string(itr->first);
+                const char* deallocate = deallocate_string.c_str();
+                std::cout << deallocate << std::endl;
+                std::system(deallocate);
+
+                // update the real value in the current count by substracting the number of deallocation and
+                // a random number betweem 1 and half of the limit of the current size
+                itr->second -= deallocateNum;
+            }
+            printf("Done. Going back to sleep...\n");
         }
     }
+}
 
-    // moving stat file
-    if(test_suite.compare("redis") == 0) 
+static void bench(std::vector<bench_profile> profile, std::string testSuite, std::string testName, std::string releaseRate) {
+    std::vector<size_t> mallocSize;
+    std::vector<int> freq;
+    std::map<size_t, int> numLives; // the total living object with size x
+    getStats(profile, mallocSize, freq, numLives);
+    std::map<size_t, int> objCount;
+    srand(time(NULL));
+    int round = 0;
+
+    // start deallocating thread
+    std::thread(deallocate, numLives, std::ref(objCount)).detach();
+
+    // start redis
+    if(testSuite.compare("redis") == 0)
     {
-        std::string stat_string = "./redis/stat.sh " + test_name + " " + release_rate;
+        std::system("./redis/start_redis.sh");
+        sleep(5);
+    }
+    // start firefox
+    else
+        std::system("./firefox/start_firefox.sh");
+
+    // populating
+    if(testSuite.compare("redis") == 0)
+    {
+        int n = mallocSize.size();
+        int LOOP_COUNT = 5;
+        for (round; round < LOOP_COUNT; round++) {
+            // generate random class size and populate redis
+            size_t sizeMalloc = myRand(mallocSize, freq, n);
+
+            // for redis bench we need to populate and flush it
+            int mallocCount = rand() % 100000 + 10000;
+            std::string bench_string = "./redis/bench.sh " + testName + " " + std::to_string(sizeMalloc) +
+                                       " " + std::to_string(mallocCount);
+            const char* bench_shell = bench_string.c_str();
+            time_t now = time(NULL);
+	        tm* tm_t = localtime(&now);
+            std::cout << tm_t->tm_hour << ":" << tm_t->tm_min << ":" << tm_t->tm_sec << " Round " << round <<
+            ": Running redis " << testName << ": "<< bench_shell << std::endl;
+            std::system(bench_shell);
+            objCount[sizeMalloc] += mallocCount;
+            sleep(10);
+        };
+
+        // moving stat file
+        std::string stat_string = "./redis/stat.sh " + testName + " " + releaseRate;
         const char* stat_shell = stat_string.c_str();
         std::system(stat_shell);
+
         // kill redis server if neccessary
         std::system("./redis/stop_redis.sh");
+
         // delete dumb.rdb
         std::system("rm /home/minh/Desktop/redis/src/dump.rdb");
     }
+
+    // moving stat file for firefox
+    else if(testSuite.compare("firefox") == 0) {
+        std::string stat_string = "./firefox/stat.sh " + releaseRate;
+        const char* stat_shell = stat_string.c_str();
+        std::system(stat_shell);
+    }
+
+    // kill profiler
+    std::system("killall sh -c ./memprofile.sh");
 }
 
 int main() {
@@ -9701,28 +9726,19 @@ int main() {
     };
 
     // redis test
-    std::string test_suite = "firefox";
-    std::string release_rate = "0MB";
+    std::string testSuite = "redis";
+    std::string releaseRate = "0MB";
 
-    // PING_INLINE, PING_MBULK: basically, "inline" is the old pre-RESP format 
-    // useful if all you have is "telnet" or a similar shell tool, and "mbulk" 
-    // is the "proper" format (binary safe, etc).
-    // INCR: increase the value stored at the key by 1.
     // LPUSH, RPUSH: push to head, tail.
-    // LPOP, RPOP: pop at head, tail.
-    // SADD: Add the specified members to the set stored at key.
-    // SET, GET: Set, get key to hold the string value.
-    // MSET: Sets the given keys to their respective values.
+    // SET: Set key to hold the string value.
+    // HSET: Sets field in the hash stored at key to value.
     // LRANGE: Returns the specified elements of the list stored at key.
 
-    std::string test_name = "LRANGE";
+    std::string testName = "SET";
     // profiler
-    // std::thread(smem, test_suite, test_name, release_rate).detach();
-    // bench
-    // bench(Beta, test_suite, test_name, release_rate);
-    // kill profiler
-    // std::system("killall sh -c ./memprofile.sh");
+    std::thread(smem, testSuite, testName, releaseRate).detach();
 
-    bench(Beta, test_suite, test_name, release_rate);
+    // bench
+    bench(Beta, testSuite, testName, releaseRate);
     return 0;
 }
