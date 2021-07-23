@@ -45,6 +45,7 @@ ABSL_CONST_INIT absl::base_internal::SpinLock pageheap_lock(
     absl::kConstInit, absl::base_internal::SCHEDULE_KERNEL_ONLY);
 ABSL_CONST_INIT Arena Static::arena_;
 ABSL_CONST_INIT SizeMap ABSL_CACHELINE_ALIGNED Static::sizemap_;
+ABSL_CONST_INIT HugePageMap Static::huge_pagemap_; // Dat mod
 ABSL_CONST_INIT TransferCacheManager Static::transfer_cache_;
 ABSL_CONST_INIT CPUCache ABSL_CACHELINE_ALIGNED Static::cpu_cache_;
 ABSL_CONST_INIT PageHeapAllocator<Span> Static::span_allocator_;
@@ -73,7 +74,7 @@ size_t Static::metadata_bytes() {
       sizeof(stacktrace_allocator_) + sizeof(threadcache_allocator_) +
       sizeof(sampled_objects_) + sizeof(bucket_allocator_) +
       sizeof(inited_) + sizeof(cpu_cache_active_) + sizeof(page_allocator_) +
-      sizeof(pagemap_) + sizeof(sampled_objects_size_) +
+      sizeof(pagemap_) + sizeof(huge_pagemap_) + sizeof(sampled_objects_size_) + // Dat mod
       sizeof(peak_heap_tracker_) + sizeof(guarded_page_lock) +
       sizeof(guardedpage_allocator_);
 

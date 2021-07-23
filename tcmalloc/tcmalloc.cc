@@ -123,6 +123,7 @@
 // Dat mod
 #include "tcmalloc/huge_address_map.h"
 #include "tcmalloc/huge_pages.h"
+#include "tcmalloc/huge_pagemap.h"
 
 #if defined(OS_FREEBSD) || defined(OS_MACOSX)
 #undef HAVE_STRUCT_MALLINFO
@@ -467,6 +468,7 @@ static void DumpStats(Printer* out, int level) {
     Static::page_allocator().Print(out, MemoryTag::kSampled);
     tracking::Print(out);
     Static::guardedpage_allocator().Print(out);
+    Static::huge_pagemap().PrintStats(out);
 
     uint64_t limit_bytes;
     bool is_hard;

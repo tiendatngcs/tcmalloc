@@ -31,6 +31,9 @@
 #include "tcmalloc/common.h"
 #include "tcmalloc/transfer_cache_stats.h"
 
+// Dat mod
+#include "tcmalloc/huge_pagemap.h"
+
 #ifndef TCMALLOC_SMALL_BUT_SLOW
 #include "tcmalloc/transfer_cache_internals.h"
 #endif
@@ -77,6 +80,9 @@ class TransferCacheManager {
   }
 
   void InsertRange(int size_class, absl::Span<void *> batch, int n) {
+    for (int i = 0; i < n; ++i) {
+      huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), class_to_size(size_class)); // Dat mod
+    }
     if (use_lock_free_cache_)
       cache_[size_class].lock_free.InsertRange(batch, n);
     else
@@ -84,10 +90,15 @@ class TransferCacheManager {
   }
 
   ABSL_MUST_USE_RESULT int RemoveRange(int size_class, void **batch, int n) {
+    int result;
     if (use_lock_free_cache_)
-      return cache_[size_class].lock_free.RemoveRange(batch, n);
+      result = cache_[size_class].lock_free.RemoveRange(batch, n);
     else
-      return cache_[size_class].legacy.RemoveRange(batch, n);
+      result = cache_[size_class].legacy.RemoveRange(batch, n);
+    for (int i = 0; i < result; ++i){
+      huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * class_to_size(size_class)); // Dat mod
+    }
+    return result;
   }
 
   size_t central_length(int size_class) {
@@ -130,6 +141,7 @@ class TransferCacheManager {
   static size_t num_objects_to_move(int size_class);
   void *Alloc(size_t size) ABSL_EXCLUSIVE_LOCKS_REQUIRED(pageheap_lock);
   int DetermineSizeClassToEvict();
+  HugePageMap& huge_pagemap();
   bool ShrinkCache(int size_class) {
     if (use_lock_free_cache_)
       return cache_[size_class].lock_free.ShrinkCache();

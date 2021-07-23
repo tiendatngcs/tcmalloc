@@ -69,6 +69,7 @@ class Static {
   static TransferCacheManager& transfer_cache() { return transfer_cache_; }
 
   static SizeMap& sizemap() { return sizemap_; }
+  static HugePageMap& huge_pagemap() { return huge_pagemap_; }
 
   static CPUCache& cpu_cache() { return cpu_cache_; }
 
@@ -87,7 +88,6 @@ class Static {
 
   static PageMap& pagemap() { return pagemap_; }
 
-  static HugePageMap& huge_pagemap() { return huge_pagemap_; }
 
   static GuardedPageAllocator& guardedpage_allocator() {
     return guardedpage_allocator_;
@@ -153,6 +153,7 @@ class Static {
 
   ABSL_CONST_INIT static Arena arena_;
   static SizeMap sizemap_;
+  static HugePageMap huge_pagemap_;
   ABSL_CONST_INIT static TransferCacheManager transfer_cache_;
   static CPUCache cpu_cache_;
   ABSL_CONST_INIT static GuardedPageAllocator guardedpage_allocator_;
@@ -176,7 +177,6 @@ class Static {
 
   static PageAllocatorStorage page_allocator_;
   static PageMap pagemap_;
-  static HugePageMap huge_pagemap_;
 };
 
 inline bool Static::IsInited() {

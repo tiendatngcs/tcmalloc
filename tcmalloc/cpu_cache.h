@@ -28,6 +28,7 @@
 #include "absl/base/internal/spinlock.h"
 #include "absl/base/optimization.h"
 #include "tcmalloc/common.h"
+#include "tcmalloc/huge_pages.h" // Dat mod
 #include "tcmalloc/internal/logging.h"
 #include "tcmalloc/internal/percpu.h"
 #include "tcmalloc/internal/percpu_tcmalloc.h"
@@ -217,6 +218,8 @@ template <void* OOMHandler(size_t)>
 inline void* ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Allocate(size_t cl) {
   ASSERT(cl > 0);
 
+  void* ret; // Dat mod
+
   tracking::Report(kMallocHit, cl, 1);
   struct Helper {
     static void* ABSL_ATTRIBUTE_NOINLINE Underflow(int cpu, size_t cl) {
@@ -232,7 +235,13 @@ inline void* ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Allocate(size_t cl) {
       return ret;
     }
   };
-  return freelist_.Pop(cl, &Helper::Underflow);
+  // Dat mod
+  ret = freelist_.Pop(cl, &Helper::Underflow);
+  if (ret != nullptr){
+    Static::huge_pagemap().add_live_size(HugePageContaining(ret), Static::sizemap().class_to_size(cl));
+  }
+  return ret;
+  // Dat mod ends
 }
 
 inline void ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Deallocate(void* ptr,
@@ -250,6 +259,7 @@ inline void ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Deallocate(void* ptr,
     }
   };
   freelist_.Push(cl, ptr, Helper::Overflow);
+  Static::huge_pagemap().add_live_size(HugePageContaining(ptr), -1 * Static::sizemap().class_to_size(cl));
 }
 
 inline bool UsePerCpuCache() {

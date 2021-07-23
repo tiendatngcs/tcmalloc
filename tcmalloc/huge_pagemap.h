@@ -7,11 +7,12 @@
 
 #include "tcmalloc/common.h"
 #include "tcmalloc/huge_pages.h"
-#include "tcmalloc/static_vars.h"
+#include "tcmalloc/internal/logging.h"
 
 #include <atomic>
+#include <inttypes.h>
+#include <iostream>
 #include <string>
-// Dat mod ends
 
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
@@ -25,9 +26,10 @@ void* MetaDataAlloc(size_t bytes);
 // template <void* (Allocator)(size_t size)>
 class HugePageMap {
     private:
-        static constexpr uint32_t rootBits = (sizeof(uint32_t) / 2) * 8;
+        static constexpr uint32_t totalBits = kAddressBits - kHugePageShift;
+        static constexpr uint32_t rootBits = totalBits / 2;
         static constexpr uint32_t rootLength = (uint32_t)1 << rootBits;
-        static constexpr uint32_t leafBits = (sizeof(uint32_t) / 2) * 8;
+        static constexpr uint32_t leafBits = totalBits - rootBits;
         static constexpr uint32_t leafLength = (uint32_t)1 << leafBits;
         // static void* Alloc(size_t size) ABSL_EXCLUSIVE_LOCKS_REQUIRED(pageheap_lock){
         //     return Static::arena().Alloc(size);
@@ -49,22 +51,29 @@ class HugePageMap {
             void AddLiveSize(int increment){
                 live_size_.fetch_add(increment, std::memory_order_relaxed);
             }
-            void AddIdleSize(int increment){
-                idle_size_.fetch_add(increment, std::memory_order_relaxed);
+            void AddCPUCacheIdleSize(int increment){
+                cpu_cache_idle_size_.fetch_add(increment, std::memory_order_relaxed);
+            }
+            void AddCentralCacheIdleSize(int increment){
+                central_cache_idle_size_.fetch_add(increment, std::memory_order_relaxed);
             }
 
             int GetLiveSize() const{
                 return live_size_.load(std::memory_order_relaxed);
             }
-            int GetIdleSize() const{
-                return idle_size_.load(std::memory_order_relaxed);
+            int GetCPUCacheIdleSize() const{
+                return cpu_cache_idle_size_.load(std::memory_order_relaxed);
+            }
+            int GetCentralCacheIdleSize() const{
+                return central_cache_idle_size_.load(std::memory_order_relaxed);
             }
             size_t GetFreeSize() const{
-                return kHugePageSize - GetLiveSize() - GetIdleSize();
+                return kHugePageSize - GetLiveSize() - GetCPUCacheIdleSize() - GetCentralCacheIdleSize();
             }
 
-            std::atomic<int> live_size_ = 0; // Amount being used by application
-            std::atomic<int> idle_size_ = 0; // Amount sitting idly in CPU cache
+            std::atomic<int64_t> live_size_ = 0; // Amount being used by application
+            std::atomic<int64_t> cpu_cache_idle_size_ = 0; // Amount sitting idly in CPU cache
+            std::atomic<int64_t> central_cache_idle_size_ = 0; // Amount sitting idly in CPU cache
         };
 
         struct Leaf {
@@ -75,57 +84,96 @@ class HugePageMap {
     
     public:
         HugePageMap(): root_{} {}
-        uint32_t get_i1(uintptr_t idx) const {
-            return idx >> leafBits;
+        uint32_t get_i1(void*  addr) const {
+            return reinterpret_cast<uintptr_t>(addr) >> (kHugePageShift + leafBits);
         }
-        uint32_t get_i2(uintptr_t idx) const {
-            return idx & (leafLength - 1);
+        uint32_t get_i2(void*  addr) const {
+            return (reinterpret_cast<uintptr_t>(addr) >> kHugePageShift) & (leafLength - 1);
         }
 
         void add_live_size(HugePage hp, int increment){
-            uint32_t i1 = get_i1(hp.index());
-            uint32_t i2 = get_i2(hp.index());
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
             init_stats_if_necessary(i1, i2);
             ASSERT(root_[i1] != nullptr);
             root_[i1]->huge_page_stats[i2]->AddLiveSize(increment);
         }
 
-        void add_idle_size(HugePage hp, int increment){
-            uint32_t i1 = get_i1(hp.index());
-            uint32_t i2 = get_i2(hp.index());
+        void add_cpu_cache_idle_size(HugePage hp, int increment){
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
             init_stats_if_necessary(i1, i2);
             ASSERT(root_[i1] != nullptr);
-            root_[i1]->huge_page_stats[i2]->AddIdleSize(increment);
+            root_[i1]->huge_page_stats[i2]->AddCPUCacheIdleSize(increment);
+        }
+
+        void add_central_cache_idle_size(HugePage hp, int increment){
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
+            init_stats_if_necessary(i1, i2);
+            ASSERT(root_[i1] != nullptr);
+            root_[i1]->huge_page_stats[i2]->AddCentralCacheIdleSize(increment);
         }
 
         int get_live_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.index());
-            uint32_t i2 = get_i2(hp.index());
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
             init_stats_if_necessary(i1, i2);
             ASSERT(root_[i1] != nullptr);
             return root_[i1]->huge_page_stats[i2]->GetLiveSize();
         }
 
-        int get_idle_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.index());
-            uint32_t i2 = get_i2(hp.index());
+        int get_cpu_cache_idle_size(HugePage hp)  {
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
             init_stats_if_necessary(i1, i2);
             ASSERT(root_[i1] != nullptr);
-            return root_[i1]->huge_page_stats[i2]->GetIdleSize();
+            return root_[i1]->huge_page_stats[i2]->GetCPUCacheIdleSize();
+        }
+        
+        int get_central_cache_idle_size(HugePage hp)  {
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
+            init_stats_if_necessary(i1, i2);
+            ASSERT(root_[i1] != nullptr);
+            return root_[i1]->huge_page_stats[i2]->GetCentralCacheIdleSize();
         }
 
         size_t get_free_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.index());
-            uint32_t i2 = get_i2(hp.index());
+            uint32_t i1 = get_i1(hp.start_addr());
+            uint32_t i2 = get_i2(hp.start_addr());
             init_stats_if_necessary(i1, i2);
             ASSERT(root_[i1] != nullptr);
             return root_[i1]->huge_page_stats[i2]->GetFreeSize();
         }
 
-        std::string get_huge_page_stats(HugePage hp){
-            std::string ret = "";
-            return ret;
-        }
+        void PrintStats(Printer *out){
+            // uintptr_t hp_addr;
+            void* hp_addr;
+            out->printf("------------------------------------------------\n");
+            out->printf("HugePageMap Stats. Per-HugePage memory usage:\n");
+            out->printf("------------------------------------------------\n");
+            for (uint32_t i1 = 0; i1 < rootLength; i1++){
+                if (root_[i1] != nullptr){
+                for (uint32_t i2 = 0; i2 < leafLength; i2++){
+                    if (root_[i1]->huge_page_stats[i2] != nullptr){
+                    hp_addr = reinterpret_cast<void*>((((uint64_t)i1 << leafBits) | (uint64_t)i2) << kHugePageShift);  
+                    out->printf("HugePage at addr %p\n"
+                        "\tLive size: %12d bytes\n"
+                        "\tCPU Cache Idle size: %12d bytes\n"
+                        "\tCentral Cache Idle size: %12d bytes\n"
+                        "\tFree size: %12d bytes\n"
+                        "------------------\n",
+                        hp_addr,
+                        get_live_size(HugePageContaining(hp_addr)),
+                        get_cpu_cache_idle_size(HugePageContaining(hp_addr)),
+                        get_central_cache_idle_size(HugePageContaining(hp_addr)),
+                        get_free_size(HugePageContaining(hp_addr)));
+                    }
+                }
+                }
+            }
+            }
 };
 
 

@@ -63,6 +63,10 @@ int TransferCacheManager::DetermineSizeClassToEvict() {
   return t;
 }
 
+HugePageMap& TransferCacheManager::huge_pagemap(){
+  return Static::huge_pagemap();
+}
+
 #endif
 
 }  // namespace tcmalloc_internal
