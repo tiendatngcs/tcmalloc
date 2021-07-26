@@ -26,8 +26,7 @@ then
     printf "%s\t\t%s\t\t\t%s\t\t%s\t\t%s\n" "Time" $(smem --processfilter="redis-server" -c "name rss pss uss" | head -n 1) >> $SMEM_FILE
     while true
     do
-        printf "%s\t%s\t%s\t%s\t%s\n" $(date +"%T") $(smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server) >> $SMEM_FILE    
-        # smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server >> $SMEM_FILE  
+        printf "%s\t%s\t%s\t%s\t%s\n" $(date +"%T") $(smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server | head -1) >> $SMEM_FILE
         sleep 1
     done
 else
