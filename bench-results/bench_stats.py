@@ -47,7 +47,7 @@ class Log:
 
 
 class Benchmark_Stat:
-    def __init__(self, DIR, test_name, deallocate_log):
+    def __init__(self, DIR, test_name, deallocate_log=None):
         self.DIR = DIR
         self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
         self.test_name = test_name
@@ -107,8 +107,9 @@ class Benchmark_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("num(s) page")
         plt.title("Huge Page Usage in " + self.test_name)
-        for coor in self.deallocate:
-            plt.axvline(x=coor, c="r", ls='--')
+        if deallocate_log:
+            for coor in self.deallocate:
+                plt.axvline(x=coor, c="r", ls='--')
         plt.legend()
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
@@ -124,18 +125,19 @@ class Benchmark_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("%")
         plt.title("% Huge Page Stranded in " + self.test_name)
-        for coor in self.deallocate:
-            plt.axvline(x=coor, c="r", ls='--')
+        if deallocate_log:
+            for coor in self.deallocate:
+                plt.axvline(x=coor, c="r", ls='--')
         plt.legend()
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
-        fig.text(0.78, 0.8, textstr, fontsize = 12, bbox = dict(facecolor = 'white', alpha = 0.5))
+        fig.text(0.8, 0.9, textstr, fontsize = 12, bbox = dict(facecolor = 'white', alpha = 0.5))
         fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Stranded.png'), dpi = 100)
         plt.show()
 
 
 class Memory_Stat:
-    def __init__(self, DIR, test_name, deallocate_log):
+    def __init__(self, DIR, test_name, deallocate_log=None):
         self.DIR = DIR
         self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
 
@@ -175,8 +177,9 @@ class Memory_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("Mem usage (MB)")
         plt.title(self.date + " " + self.test_name + " " + self.memo)
-        for coor in self.deallocate:
-            plt.axvline(x=coor, c="r", ls='--')
+        if deallocate_log:
+            for coor in self.deallocate:
+                plt.axvline(x=coor, c="r", ls='--')
         plt.legend()
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
@@ -186,8 +189,9 @@ class Memory_Stat:
 mem_dir = "/home/minh/Desktop/tcmalloc/bench-results/smem/"
 stat_dir = "/home/minh/Desktop/tcmalloc/bench-results/stats/"
 log_dir = "/home/minh/Desktop/tcmalloc/bench-results/"
-tests = ["SET"]
+tests = ["PUSH"]
 release_rates = ["0MB"]
+deallocate_log = None
 
 for test_name in tests:
     for rate in release_rates:

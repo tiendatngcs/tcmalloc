@@ -15,3 +15,9 @@ bench-results/smem/*
 bench-results/pic/*
 bench-results/log/*
 bench-results/bench_profile
+
+mybench/stats/*
+mybench/log/*
+mybench/smem/*
+
+
