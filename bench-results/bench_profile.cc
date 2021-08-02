@@ -112,8 +112,8 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     getStats(profile, mallocSize, freq, numLives);
 
     time_t start = time(0);
-    int maxTime = 300;
-    int minTime = 180;
+    int maxTime = 120;
+    int minTime = 60;
     double deallocateTime = rand() % maxTime + minTime;
 
     std::map<size_t, int> objCount; // keep track of the count of the malloc size

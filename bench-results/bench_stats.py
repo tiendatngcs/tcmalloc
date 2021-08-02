@@ -109,7 +109,7 @@ class Benchmark_Stat:
         plt.title("Huge Page Usage in " + self.test_name)
         if self.deallocate_log:
             for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="r", ls='--')
+                plt.axvline(x=coor, c="skyblue", ls='--')
         plt.legend()
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
@@ -127,7 +127,7 @@ class Benchmark_Stat:
         plt.title("% Huge Page Stranded in " + self.test_name)
         if self.deallocate_log:
             for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="r", ls='--')
+                plt.axvline(x=coor, c="skyblue", ls='--')
         plt.legend()
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
@@ -179,7 +179,7 @@ class Memory_Stat:
         plt.title(self.date + " " + self.test_name + " " + self.memo)
         if self.deallocate_log:
             for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="r", ls='--')
+                plt.axvline(x=coor, c="skyblue", ls='--')
         plt.legend()
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
@@ -210,7 +210,7 @@ class Driver:
         for test_name in self.tests:
             for rate in self.release_rates:
                 current_stat_dir = self.redis_stat_dir + test_name + "/" + rate
-                current_smem_dir = self.redis_mem_dir + test_name + "/" + rate
+                current_smem_dir = self.redis_smem_dir + test_name + "/" + rate
                 deallocate_log = Log(self.redis_log_dir, test_name + "-" + rate).get_log()
                 Benchmark_Stat(current_stat_dir, test_name + "-" + rate, deallocate_log)
                 Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
@@ -225,6 +225,7 @@ class Driver:
                 Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
 
 
-Driver("mybench", ["mybench"], ["0MB"])
+Driver("redis", ["SET"], ["0MB"])
+# Driver("mybench", ["mybench"], ["0MB"])
 
     

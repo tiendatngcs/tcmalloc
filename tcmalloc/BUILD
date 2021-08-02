@@ -1230,3 +1230,17 @@ cc_binary(
     malloc = ":tcmalloc",
     deps = [":malloc_extension"],
 )
+
+# Minh
+cc_test(
+    name = "huge_page_map_test",
+    srcs = ["huge_page_map_test.cc"],
+    copts = TCMALLOC_DEFAULT_COPTS,
+    deps = [
+        ":common_deprecated_perthread",
+        "//tcmalloc/internal:optimization",
+        "//tcmalloc/internal:util",
+        "@com_github_google_benchmark//:benchmark",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
