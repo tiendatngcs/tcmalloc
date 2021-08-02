@@ -88,7 +88,7 @@ void CentralFreeList::InsertRange(void** batch, int N) {
     size_t object_size = object_size_;
     absl::base_internal::SpinLockHolder h(&lock_);
     for (int i = 0; i < N; ++i) {
-      Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), Static::sizemap().class_to_size(size_class_)); // Dat mod
+      Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), object_size_); // Dat mod
       Span* span = ReleaseToSpans(batch[i], spans[i], object_size);
       if (ABSL_PREDICT_FALSE(span)) {
         free_spans[free_count] = span;
@@ -105,14 +105,15 @@ void CentralFreeList::InsertRange(void** batch, int N) {
     // Unregister size class doesn't require holding any locks.
     for (int i = 0; i < free_count; ++i) {
       Span* const free_span = free_spans[i];
-      ASSERT(IsNormalMemory(free_span->start_address())
-      );
+      ASSERT(IsNormalMemory(free_span->start_address()));
+      Static::pagemap().UnregisterSizeClass(free_span);
       // Dat mod
+      // Returning pages in span to pageheap
       for (PageId page = free_span->first_page(); page <= free_span->last_page(); ++page){
+        // Log(kLog, __FILE__, __LINE__, "Page addr", page.start_addr());
         Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(page), -1 * (int64_t)kPageSize);
       }
       // Dat mod ends
-      Static::pagemap().UnregisterSizeClass(free_span);
 
       // Before taking pageheap_lock, prefetch the PageTrackers these spans are
       // on.
@@ -141,6 +142,13 @@ void CentralFreeList::InsertRange(void** batch, int N) {
       Span* const free_span = free_spans[i];
       ASSERT(tag == GetMemoryTag(free_span->start_address()));
       Static::page_allocator().Delete(free_span, tag);
+      // // Dat mod
+      // // Returning pages in span to pageheap
+      // for (PageId page = free_span->first_page(); page <= free_span->last_page(); ++page){
+      //   // Log(kLog, __FILE__, __LINE__, "Page addr", page.start_addr());
+      //   Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(page), -1 * (int64_t)kPageSize);
+      // }
+      // // Dat mod ends
     }
   }
 }
@@ -165,10 +173,10 @@ int CentralFreeList::RemoveRange(void** batch, int N) {
       result += here;
     } while (result < N && !nonempty_.empty());
   }
-  UpdateObjectCounts(-result);
   for (int i = 0; i < result; i++){
-    Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * Static::sizemap().class_to_size(size_class_)); // Dat mod
+    Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * int64_t(object_size_)); // Dat mod
   }
+  UpdateObjectCounts(-result);
   return result;
 }
 
@@ -182,9 +190,16 @@ int CentralFreeList::Populate(void** batch,
 
   const MemoryTag tag = MemoryTagFromSizeClass(size_class_);
   Span* span = Static::page_allocator().New(pages_per_span_, tag);
-  for (PageId page = span->first_page(); page <= span->last_page(); ++page){
-    Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(page), kPageSize);
+  // Dat mod
+  // Fetching pages from Pageheap
+  {
+    absl::base_internal::SpinLockHolder h(&pageheap_lock);
+    for (PageId page = span->first_page(); page <= span->last_page(); ++page){
+      // Log(kLog, __FILE__, __LINE__, "Page addr", page.start_addr());
+      Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(page), kPageSize);
+    }
   }
+  // Dat mod ends
   if (ABSL_PREDICT_FALSE(span == nullptr)) {
     Log(kLog, __FILE__, __LINE__, "tcmalloc: allocation failed",
         pages_per_span_.in_bytes());
@@ -197,6 +212,9 @@ int CentralFreeList::Populate(void** batch,
   Static::pagemap().RegisterSizeClass(span, size_class_);
   size_t objects_per_span = objects_per_span_;
   int result = span->BuildFreelist(object_size_, objects_per_span, batch, N);
+  // for (int i = 0; i < result; i++) {
+  //   Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * int64_t(object_size_)); // Dat mod
+  // }
   ASSERT(result > 0);
   // This is a cheaper check than using FreelistEmpty().
   bool span_empty = result == objects_per_span;
@@ -206,6 +224,11 @@ int CentralFreeList::Populate(void** batch,
     nonempty_.prepend(span);
   }
   RecordSpanAllocated();
+  // {
+  //   absl::base_internal::SpinLockHolder h(&pageheap_lock);
+  //   Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(span->first_page()), objects_per_span * Static::sizemap().class_to_size(size_class()));
+  // }
+
   return result;
 }
 

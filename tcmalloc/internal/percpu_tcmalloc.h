@@ -534,6 +534,7 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE bool TcmallocSlab<Shift, NumClasses>::Push(
     result = TcmallocSlab_Internal_Push(slabs_, cl, item, Shift, f) >= 0;
   }
 #endif
+  ASSERT(item != nullptr);
   // Dat mod
   if (result){
     Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(item), Static::sizemap().class_to_size(cl));
@@ -817,7 +818,8 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE void* TcmallocSlab<Shift, NumClasses>::Pop(
     result = TcmallocSlab_Internal_Pop(slabs_, cl, f, Shift);
   }
 #endif
-  Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(result), -1 * Static::sizemap().class_to_size(cl)); // Dat mod
+  ASSERT(result != nullptr);
+  Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(result), -1 * int32_t (Static::sizemap().class_to_size(cl))); // Dat mod
   return result;
 }
 
@@ -831,14 +833,17 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PushBatch(size_t cl,
                                                          size_t len) {
   ASSERT(len != 0);
   if (Shift == TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT) {
-    size_t result;
     //Doing per-hugepage stats
     // if Shift != TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT
     // stats count is handled by Push()
     // Assume all items in batch are pushed to slab
+    // Log(kLog, __FILE__, __LINE__, "Pushing Items to CPU Cache");
     for (int i = 0; i < len; i++){
+      // temp
       Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), Static::sizemap().class_to_size(cl));
     }
+    // Log(kLog, __FILE__, __LINE__, "cpu cache path 1");
+    size_t result;
     // Then subtract items that are not added below
 #if TCMALLOC_PERCPU_USE_RSEQ
     // TODO(b/159923407): TcmallocSlab_Internal_PushBatch_FixedShift needs to be
@@ -862,11 +867,15 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PushBatch(size_t cl,
 #else  // !TCMALLOC_PERCPU_USE_RSEQ
     __builtin_unreachable();
 #endif  // !TCMALLOC_PERCPU_USE_RSEQ
+    // Log(kLog, __FILE__, __LINE__, "Poping Items From CPU Cache");
     for (int i = 0; i < len - result; i++){
-      Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * Static::sizemap().class_to_size(cl));
+      // temp
+      Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * int32_t(Static::sizemap().class_to_size(cl)));
     }
+    // Log(kLog, __FILE__, __LINE__, "Ending path 1");
     return result;
   } else {
+    // Log(kLog, __FILE__, __LINE__, "cpu cache path 2");
     size_t n = 0;
     // Push items until either all done or a push fails
     while (n < len && Push(cl, batch[len - 1 - n], NoopOverflow)) {
@@ -882,6 +891,7 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PopBatch(size_t cl, void** batch,
   ASSERT(len != 0);
   size_t n = 0;
   if (Shift == TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT) {
+    Log(kLog, __FILE__, __LINE__, "Popbatch path 1");
 #if TCMALLOC_PERCPU_USE_RSEQ
     // TODO(b/159923407): TcmallocSlab_Internal_PopBatch_FixedShift needs to be
     // refactored to take a 5th parameter (virtual_cpu_id_offset) to avoid
@@ -909,9 +919,11 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PopBatch(size_t cl, void** batch,
 #endif  // !TCMALLOC_PERCPU_USE_RSEQ
   // Per-hugepage count. Alse branch below is already handled by Pop()
   for (int i = 0; i < n; i++){
-    Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * Static::sizemap().class_to_size(cl));
+    // temp
+    Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * int32_t(Static::sizemap().class_to_size(cl)));
   }
   } else {
+    Log(kLog, __FILE__, __LINE__, "Popbatch path 2");
     // Pop items until either all done or a pop fails
     while (n < len && (batch[n] = Pop(cl, NoopUnderflow))) {
       n++;

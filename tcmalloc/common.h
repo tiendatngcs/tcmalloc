@@ -28,6 +28,7 @@
 #include "absl/base/optimization.h"
 #include "absl/numeric/bits.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "tcmalloc/experiment.h"
 #include "tcmalloc/internal/config.h"
@@ -451,7 +452,6 @@ class SizeMap {
 
 // Linker initialized, so this lock can be accessed at any time.
 extern absl::base_internal::SpinLock pageheap_lock;
-
 }  // namespace tcmalloc_internal
 }  // namespace tcmalloc
 GOOGLE_MALLOC_SECTION_END

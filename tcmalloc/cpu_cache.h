@@ -236,6 +236,7 @@ inline void* ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Allocate(size_t cl) {
     }
   };
   // Dat mod
+  // Log(kLog, __FILE__, __LINE__, "Allocating object of size", Static::sizemap().class_to_size(cl));
   ret = freelist_.Pop(cl, &Helper::Underflow);
   if (ret != nullptr){
     Static::huge_pagemap().add_live_size(HugePageContaining(ret), Static::sizemap().class_to_size(cl));
@@ -258,8 +259,9 @@ inline void ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Deallocate(void* ptr,
       return Static::cpu_cache().Overflow(ptr, cl, cpu);
     }
   };
+  // Log(kLog, __FILE__, __LINE__, "Deallocating object of size", Static::sizemap().class_to_size(cl));
+  Static::huge_pagemap().add_live_size(HugePageContaining(ptr), -1 * int32_t(Static::sizemap().class_to_size(cl)));
   freelist_.Push(cl, ptr, Helper::Overflow);
-  Static::huge_pagemap().add_live_size(HugePageContaining(ptr), -1 * Static::sizemap().class_to_size(cl));
 }
 
 inline bool UsePerCpuCache() {

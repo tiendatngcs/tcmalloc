@@ -2366,9 +2366,28 @@ extern char* __progname;
 //Dat mod
 class BackgroundWorker{
   public:
+    // static void write_stats_to_file(){
+    //   tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Writting Stats to File");
+    //   int count = 0;
+    //   if(std::filesystem::is_directory("stats"))
+    //     std::filesystem::remove_all("stats");
+    //   std::filesystem::create_directory("stats");
+    //   std::ofstream out_file;
+    //   while(true) {
+    //     if (Static::CPUCacheActive()) {
+    //       out_file.open("stats/stats_" + std::to_string(count) + ".txt");
+    //       out_file << tcmalloc::MallocExtension::GetStats();
+    //       out_file.close();
+    //       count++;
+    //     }
+    //     sleep(1);
+    //   }
+    // }
+
     static void write_stats_to_file(){
-      std::cout << "Thread: write_stats_to_file started." << std::endl;
       int count = 0;
+      while (!Static::CPUCacheActive()){sleep(0.1);}
+      tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Writting Stats to File");
       if(std::filesystem::is_directory("stats"))
         std::filesystem::remove_all("stats");
       std::filesystem::create_directory("stats");
@@ -2381,8 +2400,9 @@ class BackgroundWorker{
         sleep(1);
       }
     }
+
     static void background_subrelease(){
-      std::cout << "Thread: background_subrelease started." << std::endl;
+      tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Background release thread started");
       MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
@@ -2448,6 +2468,7 @@ class TCMallocGuard {
   TCMallocGuard() {
     TCMallocInternalFree(TCMallocInternalMalloc(1));
     ThreadCache::InitTSD();
+    
     TCMallocInternalFree(TCMallocInternalMalloc(1));
 
     // create thread to check the stats

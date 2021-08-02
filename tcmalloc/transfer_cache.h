@@ -80,9 +80,13 @@ class TransferCacheManager {
   }
 
   void InsertRange(int size_class, absl::Span<void *> batch, int n) {
-    for (int i = 0; i < n; ++i) {
-      huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), class_to_size(size_class)); // Dat mod
-    }
+    // {
+    //   absl::base_internal::SpinLockHolder h(&pageheap_lock);
+    //   for (int i = 0; i < n; ++i) {
+    //     huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), class_to_size(size_class)); // Dat mod
+    //   }
+    // }
+
     if (use_lock_free_cache_)
       cache_[size_class].lock_free.InsertRange(batch, n);
     else
@@ -95,9 +99,21 @@ class TransferCacheManager {
       result = cache_[size_class].lock_free.RemoveRange(batch, n);
     else
       result = cache_[size_class].legacy.RemoveRange(batch, n);
-    for (int i = 0; i < result; ++i){
-      huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * class_to_size(size_class)); // Dat mod
-    }
+
+// 
+//     for (int i = 0; i < result; ++i){
+//       Log(kLog, __FILE__, __LINE__,
+//         HugePageContaining(batch[i]).pn, HugePageContaining(batch[i]).start_addr(), 
+//         huge_pagemap().get_central_cache_idle_size(HugePageContaining(batch[i])), bytes_size);
+//     }
+//     Log(kLog, __FILE__, __LINE__, result);
+  { absl::base_internal::SpinLockHolder h(&pageheap_lock);
+    size_t bytes_size = class_to_size(size_class);
+
+    // for (int i = 0; i < result; ++i){
+    //   huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * int64_t(class_to_size(size_class))); // Dat mod
+    // }
+  }
     return result;
   }
 

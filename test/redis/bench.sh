@@ -32,12 +32,12 @@ do
   ./redis-benchmark -t $TEST_NAME -c 1000 -r 2000000 -d 1000 -n 200000 -q
   echo dbsize:
   ./redis-cli dbsize
-  sleep 60
+  sleep 1
   echo Flushing db
   ./redis-cli flushdb
   echo dbsize:
   ./redis-cli dbsize
-  sleep 60
+  sleep 1
   echo ------------------------------------------------------
 done
 echo terminating memprofiler

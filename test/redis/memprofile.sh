@@ -22,4 +22,4 @@ do
     pmap $REDIS_SERVER_ID -x | tail -n 1 >> $PMAP_FILE
     sleep 1
 done
-echo ------------------------------------------------------------------ >> $FILE
+echo ------------------------------------------------------------------ | tee -a $SMEM_FILE $PMAP_FILE

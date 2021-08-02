@@ -197,9 +197,11 @@ void *CPUCache::Refill(int cpu, size_t cl) {
     if (result == nullptr) {
       i--;
       result = batch[i];
+      if (result){
+        // Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(result), Static::sizemap().class_to_size(cl));
+      }
     }
     if (i) {
-
       i -= freelist_.PushBatch(cl, batch, i);
       if (i != 0) {
         static_assert(ABSL_ARRAYSIZE(batch) >= kMaxObjectsToMove,
@@ -214,7 +216,6 @@ void *CPUCache::Refill(int cpu, size_t cl) {
     Static::transfer_cache().InsertRange(
         to_return.cl[i], absl::Span<void *>(&(to_return.obj[i]), 1), 1);
   }
-
   return result;
 }
 

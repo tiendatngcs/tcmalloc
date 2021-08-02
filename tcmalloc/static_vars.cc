@@ -96,6 +96,7 @@ ABSL_ATTRIBUTE_COLD ABSL_ATTRIBUTE_NOINLINE void Static::SlowInitIfNecessary() {
   if (!inited_.load(std::memory_order_acquire)) {
     tracking::Init();
     sizemap_.Init();
+    huge_pagemap_.Init();
     span_allocator_.Init(&arena_);
     span_allocator_.New();  // Reduce cache conflicts
     span_allocator_.New();  // Reduce cache conflicts

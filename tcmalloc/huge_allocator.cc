@@ -18,6 +18,7 @@
 
 #include "tcmalloc/huge_address_map.h"
 #include "tcmalloc/internal/logging.h"
+#include "tcmalloc/static_vars.h"
 
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
@@ -112,7 +113,14 @@ HugeRange HugeAllocator::AllocateRange(HugeLength n) {
   CHECK_CONDITION(actual % kHugePageSize == 0);
   n = HLFromBytes(actual);
   from_system_ += n;
-  return HugeRange::Make(HugePageContaining(ptr), n);
+  // Dat mod
+  HugeRange huge_range = HugeRange::Make(HugePageContaining(ptr), n);
+  for (HugeLength i = {}; i < n; ++i){
+    Static::huge_pagemap().init_huge_page_stats(huge_range[i]);
+    // Log(kLog, __FILE__, __LINE__, "New HugePage requested at addr: ", huge_range[i].start_addr());
+  }
+  return huge_range;
+  // Dat mod ends
 }
 
 HugeRange HugeAllocator::Get(HugeLength n) {

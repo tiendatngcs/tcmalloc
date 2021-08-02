@@ -1,0 +1,25 @@
+072321_133734
+Test: set
+
+Name                          RSS      PSS      USS 
+redis-server                88376    85863    85852 
+redis-server               432340   429827   429816 
+redis-server               506280   503767   503756 
+redis-server               574532   572019   572008 
+redis-server               589344   586831   586820 
+redis-server               658968   656455   656444 
+redis-server               719312   716799   716788 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
+redis-server               747060   744547   744536 
