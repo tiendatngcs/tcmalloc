@@ -1,3 +1,4 @@
+#include <set>
 #include <vector>
 #include <iomanip>
 #include <cmath>
@@ -69,19 +70,55 @@ void getStats(std::vector<bench_profile> profile,
 
 // run the memory profiler
 static void smem(std::string testSuite, std::string testName, std::string releaseRate) {
-    std::string profile_string = "../bench-results/./memprofile.sh " + testName + " " + releaseRate;
+    std::string profile_string = "../bench-results/./memprofile.sh " + testSuite + " " + testName + " " + releaseRate;
     const char* profile_shell = profile_string.c_str();
     std::system(profile_shell);
 }
 
 static void myBenchDeallocate(std::map<size_t, int> numLivesMap, std::map<size_t, int> &currentObjCount, 
-                              FILE *log, std::string testName) {
-    size_t deallocate = 0;
-    time_t now = time(NULL);
-    tm* tm_t = localtime(&now);
-    fprintf(log, "%02d:%02d:%02d\t\t%ld\n", tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, deallocate);
-    fflush(log);
-    sleep(5);
+                              std::map<size_t, std::set<char*>> pointers, std::set<char*> removedPointers, FILE *log) {
+    if(currentObjCount.size()) {
+        // check current allocation and adjust them accordingly to the profile
+        for(auto itr = currentObjCount.begin(); itr != currentObjCount.end(); ++itr) {
+            if(itr->second < numLivesMap[itr->first])
+                continue;
+            int deallocateNum = abs(numLivesMap[itr->first] - itr->second) + rand() % numLivesMap[itr->first] / 2 + 1;
+            int repeated = 0;
+
+            // after we calculate how many deallocations we want to do, we will get the pointers 
+            // from the pointers vector and pop that many out
+            for(int i = 0; i < deallocateNum; i++) {
+                // get a random index from the current set and remove it
+                int removeIndex = rand() % pointers[itr->first].size();
+
+                // get to that element and remove it
+                auto startIndex = pointers[itr->first].begin();
+                std::advance(startIndex, removeIndex);
+                char* ptrToRemove = *startIndex;
+
+                // sometimes the address is the same so we need to make sure we are not return
+                // something had already been returned
+                if (removedPointers.count(ptrToRemove))
+                    repeated += 1;
+                else {
+                    free(ptrToRemove);
+                    removedPointers.insert(ptrToRemove);
+                }
+                pointers[itr->first].erase(startIndex);
+            }
+
+            time_t now = time(NULL);
+            tm* tm_t = localtime(&now);
+            fprintf(log, "%02d:%02d:%02d\t\t.Deallocating %d of size %ld with %d repeated pointers\n", tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, 
+            deallocateNum, itr->first, repeated);
+            fflush(log);
+
+            // update the real value in the current count by substracting the number of deallocation and
+            // a random number betweem 1 and half of the limit of the current size
+            itr->second -= deallocateNum;
+            sleep(5);
+        }
+    }
 }
 
 static void myBench(std::vector<bench_profile> profile, std::string testSuite, 
@@ -93,10 +130,13 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite,
     getStats(profile, mallocSize, freq, numLives);
 
     time_t start = time(0);
-    double deallocateTime = rand() % 180 + 60;
+    int maxTime = 60;
+    int minTime = 30;
+    double deallocateTime = rand() % maxTime + minTime;
 
     std::map<size_t, int> objCount; // keep track of the count of the malloc size
-    std::map<size_t, std::vector<char*>> pointers; // this will keep track of the pointers addresses of a malloc size
+    std::map<size_t, std::set<char*>> pointers; // this will keep track of the pointers addresses of a malloc size
+    std::set<char*> removedPointers; // keep track of which pointes had been removed
 
     srand(time(NULL)); // seed 
 
@@ -110,16 +150,16 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite,
 
     // run benchmark
     int n = mallocSize.size();
-    int LOOP_COUNT = 50;
-    int round = 0;
-    for (round; round < LOOP_COUNT; round++) {
+    int LOOP_COUNT = 300;
+ 
+    for (int round = 0; round < LOOP_COUNT; round++) {
         // randomly do deallocation
         double runTime = difftime(time(0), start);
         if(runTime >= deallocateTime)
         {
-            myBenchDeallocate(numLives, objCount, logFile, testName);
+            myBenchDeallocate(numLives, objCount, pointers, removedPointers, logFile);
             start = time(0);
-            deallocateTime = rand() % 180 + 60;
+            deallocateTime = rand() % maxTime + minTime;
             // don't count the current round
             round -= 1;
         }
@@ -133,13 +173,12 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite,
             for(int i = 0; i < mallocCount; i++) {
                 char *ptr = (char*) malloc(sizeMalloc);
 
-                // how to assign value to the last pointer
+                // assign value to the pointer
                 // strcpy(ptr,"abc");
                 // printf("%p %s\n", ptr, (void *) ptr);
 
-                // push the pointer to the vector
-                pointers[sizeMalloc].push_back(ptr);
-                // free(ptr);
+                // the key is the size of the current malloc and push the address of the pointer to the vector of that key
+                pointers[sizeMalloc].insert(ptr);
             }
             time_t now = time(NULL);
             tm* tm_t = localtime(&now);
@@ -147,11 +186,16 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite,
                     tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, round, mallocCount, sizeMalloc);
             fflush(logFile);
             objCount[sizeMalloc] += mallocCount;
-            sleep(5);
+            sleep(1);
         }
     }
     // kill profiler
     std::system("killall sh -c /memprofile.sh");
+
+    // organize stats
+    std::string stat_string = "/stat.sh mybench " + releaseRate;
+    const char* stat_shell = stat_string.c_str();
+    std::system(stat_shell);
 
     fclose(logFile);
 }

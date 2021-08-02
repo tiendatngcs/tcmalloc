@@ -68,7 +68,7 @@ void getStats(std::vector<bench_profile> profile,
 
 // run the memory profiler
 static void smem(std::string testSuite, std::string testName, std::string releaseRate) {
-    std::string profile_string = "./memprofile.sh " + testName + " " + releaseRate;
+    std::string profile_string = "./memprofile.sh " + testSuite + " " + testName + " " + releaseRate;
     const char* profile_shell = profile_string.c_str();
     std::system(profile_shell);
 }
@@ -131,8 +131,11 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     std::vector<int> freq; // the frequency of an malloc size
     std::map<size_t, int> numLives; // the total living object with size x
     getStats(profile, mallocSize, freq, numLives);
+
     time_t start = time(0);
-    double deallocateTime = rand() % 180 + 60;
+    int maxTime = 300;
+    int minTime = 180;
+    double deallocateTime = rand() % maxTime + minTime;
 
     std::map<size_t, int> objCount; // keep track of the count of the malloc size
     srand(time(NULL)); // seed 
@@ -152,24 +155,23 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     int n = mallocSize.size();
     int LOOP_COUNT = 100;
     if(!testName.compare("PUSH"))
-        LOOP_COUNT = 100000;
-    int round = 0;
-    for (round; round < LOOP_COUNT; round++) {
+        LOOP_COUNT = 1000000;
+    for (int round = 0; round < LOOP_COUNT; round++) {
         // randomly do deallocation
         double runTime = difftime(time(0), start);
         if(runTime >= deallocateTime) {
-            // if we are using SET then we dont have to call multiple deallocation
-            if(!testName.compare("SET"))
-                deallocateRedis(numLives, objCount, logFile, testName);
-            // if we are using PUSH then we have to call the deallocation multiple time
-            // currently, I will deallocate half of what we have so far
-            else if(!testName.compare("LPUSH") || !testName.compare("RPUSH")) {
-                for(int i = 0; i <= ceil(round / 2); i++)
-                    deallocateRedis(numLives, objCount, logFile, testName);
-            }
+            // // if we are using SET then we dont have to call multiple deallocation
+            // if(!testName.compare("SET"))
+            //     deallocateRedis(numLives, objCount, logFile, testName);
+            // // if we are using PUSH then we have to call the deallocation multiple time
+            // // currently, I will deallocate half of what we have so far
+            // else if(!testName.compare("LPUSH") || !testName.compare("RPUSH")) {
+            //     for(int i = 0; i <= ceil(round / 2); i++)
+            //         deallocateRedis(numLives, objCount, logFile, testName);
+            // }
 
-            start = time(0);
-            deallocateTime = rand() % 180 + 60;
+            // start = time(0);
+            // deallocateTime = rand() % maxTime + minTime;
             // don't count the current round
             round -= 1;
         } else {
@@ -206,7 +208,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
 
             if(!testName.compare("SET"))
                 sleep(5);
-            else
+            else if(!testName.compare("LPUSH") || !testName.compare("RPUSH"))
                 sleep(1);
         }
     }
