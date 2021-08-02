@@ -249,7 +249,6 @@ inline void ABSL_ATTRIBUTE_ALWAYS_INLINE CPUCache::Deallocate(void* ptr,
                                                               size_t cl) {
   ASSERT(cl > 0);
   tracking::Report(kFreeHit, cl, 1);  // Be optimistic; correct later if needed.
-
   struct Helper {
     static int ABSL_ATTRIBUTE_NOINLINE Overflow(int cpu, size_t cl, void* ptr) {
       // When we reach here we've already optimistically bumped FreeHits.

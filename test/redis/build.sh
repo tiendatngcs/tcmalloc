@@ -1,5 +1,4 @@
 cd ../..
-TCMALLOC_DIR=$(pwd)
 SRC_DIR=../redis/src
 TCMALLOC_BIN=$TCMALLOC_DIR/bazel-bin/tcmalloc
 

@@ -21,20 +21,20 @@ touch $SMEM_FILE
 echo $TEST_NAME >> $SMEM_FILE
 echo $RELEASE_RATE >> $SMEM_FILE
 echo $TIME_STAMP >> $SMEM_FILE
-if [ $TEST_NAME != "firefox" ]
+if [ $TEST_NAME = "redis" ]
 then
     printf "%s\t\t%s\t\t\t%s\t\t%s\t\t%s\n" "Time" $(smem --processfilter="redis-server" -c "name rss pss uss" | head -n 1) >> $SMEM_FILE
     while true
     do
-        printf "%s\t%s\t%s\t%s\t%s\n" $(date +"%T") $(smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server) >> $SMEM_FILE    
-        # smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server >> $SMEM_FILE  
+        printf "%s\t%s\t%s\t%s\t%s\n" $(date +"%T") $(smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server | head -1) >> $SMEM_FILE
         sleep 1
     done
-else
-    smem --processfilter="firefox" -c "name rss pss uss" | head -n 1 >> $SMEM_FILE
+elif [ $TEST_NAME = "mybench" ]
+then
+    printf "%s\t\t%s\t\t\t%s\t\t%s\t\t%s\n" "Time" $(smem --processfilter="hello_world" -c "name rss pss uss" | head -n 1) >> $SMEM_FILE
     while true
     do
-        smem --processfilter="firefox" -c "name rss pss uss" | grep firefox >> $SMEM_FILE
+        printf "%s\t%s\t\t%s\t%s\t%s\n" $(date +"%T") $(smem --processfilter="hello_world" -c "name rss pss uss" | grep hello_world | head -1) >> $SMEM_FILE
         sleep 1
     done
 fi
