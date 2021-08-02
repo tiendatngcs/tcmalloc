@@ -1,8 +1,11 @@
-TEST_NAME=$1
-RELEASE_RATE=$2
+TEST_SUITE=$1
+TEST_NAME=$2
+RELEASE_RATE=$3
 
 TIME_STAMP=$(date +%m_%d_%y)
 CURRENT_DIR=$(pwd)
+
+echo $TEST_NAME
 
 mkdir smem
 cd smem
@@ -21,7 +24,7 @@ touch $SMEM_FILE
 echo $TEST_NAME >> $SMEM_FILE
 echo $RELEASE_RATE >> $SMEM_FILE
 echo $TIME_STAMP >> $SMEM_FILE
-if [ $TEST_NAME = "redis" ]
+if [ "$TEST_SUITE" = "redis" ]
 then
     printf "%s\t\t%s\t\t\t%s\t\t%s\t\t%s\n" "Time" $(smem --processfilter="redis-server" -c "name rss pss uss" | head -n 1) >> $SMEM_FILE
     while true
@@ -29,7 +32,7 @@ then
         printf "%s\t%s\t%s\t%s\t%s\n" $(date +"%T") $(smem --processfilter="redis-server" -c "name rss pss uss" | grep redis-server | head -1) >> $SMEM_FILE
         sleep 1
     done
-elif [ $TEST_NAME = "mybench" ]
+elif [ "$TEST_SUITE" = "mybench" ]
 then
     printf "%s\t\t%s\t\t\t%s\t\t%s\t\t%s\n" "Time" $(smem --processfilter="hello_world" -c "name rss pss uss" | head -n 1) >> $SMEM_FILE
     while true

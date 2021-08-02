@@ -61,7 +61,7 @@ class Benchmark_Stat:
         self.totalHugePageFree = []
         self.percentage = []
         
-        self.deallocate = deallocate_log
+        self.deallocate_log = deallocate_log
 
         self.get_data()
         self.get_stranded_percentage()
@@ -107,8 +107,8 @@ class Benchmark_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("num(s) page")
         plt.title("Huge Page Usage in " + self.test_name)
-        if deallocate_log:
-            for coor in self.deallocate:
+        if self.deallocate_log:
+            for coor in self.deallocate_log:
                 plt.axvline(x=coor, c="r", ls='--')
         plt.legend()
         fig = plt.gcf()
@@ -125,8 +125,8 @@ class Benchmark_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("%")
         plt.title("% Huge Page Stranded in " + self.test_name)
-        if deallocate_log:
-            for coor in self.deallocate:
+        if self.deallocate_log:
+            for coor in self.deallocate_log:
                 plt.axvline(x=coor, c="r", ls='--')
         plt.legend()
         fig = plt.gcf()
@@ -142,7 +142,7 @@ class Memory_Stat:
         self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
 
         self.pic_name = test_name
-        self.deallocate = deallocate_log
+        self.deallocate_log = deallocate_log
 
         self.date = ''
         self.test_name = ''
@@ -177,8 +177,8 @@ class Memory_Stat:
         plt.xlabel("time (s)")
         plt.ylabel("Mem usage (MB)")
         plt.title(self.date + " " + self.test_name + " " + self.memo)
-        if deallocate_log:
-            for coor in self.deallocate:
+        if self.deallocate_log:
+            for coor in self.deallocate_log:
                 plt.axvline(x=coor, c="r", ls='--')
         plt.legend()
         fig = plt.gcf()
@@ -186,17 +186,45 @@ class Memory_Stat:
         fig.savefig(os.path.join(self.PIC_DIR, self.pic_name  + '-Mem-Usage.png'), dpi = 100)
         plt.show()
 
-mem_dir = "/home/minh/Desktop/tcmalloc/bench-results/smem/"
-stat_dir = "/home/minh/Desktop/tcmalloc/bench-results/stats/"
-log_dir = "/home/minh/Desktop/tcmalloc/bench-results/"
-tests = ["PUSH"]
-release_rates = ["0MB"]
-deallocate_log = None
 
-for test_name in tests:
-    for rate in release_rates:
-        current_stat_dir = stat_dir + test_name + "/" + rate
-        current_mem_dir = mem_dir + test_name + "/" + rate
-        deallocate_log = Log(log_dir, test_name + "-" + rate).get_log()
-        test_bench_stat = Benchmark_Stat(current_stat_dir, test_name + "-" + rate, deallocate_log)
-        test_mem_stat = Memory_Stat(current_mem_dir, test_name + "-" + rate, deallocate_log)
+class Driver:
+    def __init__(self, test_suite, tests, release_rates):
+        self.redis_smem_dir = "/home/minh/Desktop/tcmalloc/bench-results/smem/"
+        self.redis_stat_dir = "/home/minh/Desktop/tcmalloc/bench-results/stats/"
+        self.redis_log_dir = "/home/minh/Desktop/tcmalloc/bench-results/"
+
+        self.mybench_smem_dir = "/home/minh/Desktop/tcmalloc/mybench/smem/"
+        self.mybench_stat_dir = "/home/minh/Desktop/tcmalloc/mybench/stats/"
+        self.mybench_log_dir = "/home/minh/Desktop/tcmalloc/mybench/"
+
+        self.tests = tests
+        self.release_rates = release_rates
+        self.deallocate_log = None
+
+        if test_suite == "redis":
+            self.run_redis()
+        elif test_suite == "mybench":
+            self.run_mybench()
+    
+    def run_redis(self):
+        for test_name in self.tests:
+            for rate in self.release_rates:
+                current_stat_dir = self.redis_stat_dir + test_name + "/" + rate
+                current_smem_dir = self.redis_mem_dir + test_name + "/" + rate
+                deallocate_log = Log(self.redis_log_dir, test_name + "-" + rate).get_log()
+                Benchmark_Stat(current_stat_dir, test_name + "-" + rate, deallocate_log)
+                Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
+    
+    def run_mybench(self):
+        for test_name in self.tests:
+            for rate in self.release_rates: 
+                current_stat_dir = self.mybench_stat_dir + test_name + "/" + rate
+                current_smem_dir = self.mybench_smem_dir + test_name + "/" + rate
+                deallocate_log = Log(self.mybench_log_dir, test_name + "-" + rate).get_log()
+                Benchmark_Stat(current_stat_dir, test_name + "-" + rate, deallocate_log)
+                Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
+
+
+Driver("mybench", ["mybench"], ["0MB"])
+
+    
