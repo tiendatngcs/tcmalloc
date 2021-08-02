@@ -155,17 +155,17 @@ class HugePageMap {
             root_[i1]->huge_page_stats[i2]->AddLiveSize(increment);
             // Log(kLog, __FILE__, __LINE__, "Changing live size of hp_addr", hp.start_addr(), increment, get_live_size(hp));
             // ASSERT(get_live_size(hp) >= 0);
-            if (get_free_size(hp) < 0){
-                // Log(kLog, __FILE__, __LINE__, "Changing live size of hp_addr", hp.start_addr(), increment, get_live_size(hp));
-                Log(kLog, __FILE__, __LINE__, "Total free of hp", hp.start_addr(), get_free_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "Negative free size detected____________________");
-                // Log(kLog, __FILE__, __LINE__, "Operation: add live");
-                // Log(kLog, __FILE__, __LINE__, "live:", get_live_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "cpu_cache_idle:", get_cpu_cache_idle_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "central_cache_idle:", get_central_cache_idle_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
-            }
+            // if (get_free_size(hp) < 0){
+            //     // Log(kLog, __FILE__, __LINE__, "Changing live size of hp_addr", hp.start_addr(), increment, get_live_size(hp));
+            //     Log(kLog, __FILE__, __LINE__, "Total free of hp", hp.start_addr(), get_free_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "Negative free size detected____________________");
+            //     // Log(kLog, __FILE__, __LINE__, "Operation: add live");
+            //     // Log(kLog, __FILE__, __LINE__, "live:", get_live_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "cpu_cache_idle:", get_cpu_cache_idle_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "central_cache_idle:", get_central_cache_idle_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
+            // }
             // ASSERT(get_free_size(hp) >= 0);
         }
 
@@ -177,17 +177,17 @@ class HugePageMap {
             root_[i1]->huge_page_stats[i2]->AddCPUCacheIdleSize(increment);
             // Log(kLog, __FILE__, __LINE__, "Changing cpu cache idle size of hp_addr", hp.start_addr(), increment, get_cpu_cache_idle_size(hp));
             // ASSERT(get_cpu_cache_idle_size(hp) >= 0);
-            if (get_free_size(hp) < 0){
-                // Log(kLog, __FILE__, __LINE__, "Changing cpu cache idle size of hp_addr", hp.start_addr(), increment, get_cpu_cache_idle_size(hp));
-                Log(kLog, __FILE__, __LINE__, "Total free of hp", hp.start_addr(), get_free_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "Negative free size detected____________________");
-                // Log(kLog, __FILE__, __LINE__, "Operation: add cpu cache idle");
-                // Log(kLog, __FILE__, __LINE__, "live:", get_live_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "cpu_cache_idle:", get_cpu_cache_idle_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "central_cache_idle:", get_central_cache_idle_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
-            }
+            // if (get_free_size(hp) < 0){
+            //     // Log(kLog, __FILE__, __LINE__, "Changing cpu cache idle size of hp_addr", hp.start_addr(), increment, get_cpu_cache_idle_size(hp));
+            //     Log(kLog, __FILE__, __LINE__, "Total free of hp", hp.start_addr(), get_free_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "Negative free size detected____________________");
+            //     // Log(kLog, __FILE__, __LINE__, "Operation: add cpu cache idle");
+            //     // Log(kLog, __FILE__, __LINE__, "live:", get_live_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "cpu_cache_idle:", get_cpu_cache_idle_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "central_cache_idle:", get_central_cache_idle_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
+            // }
             // ASSERT(get_free_size(hp) >= 0);
         }
 
@@ -199,16 +199,16 @@ class HugePageMap {
             root_[i1]->huge_page_stats[i2]->AddCentralCacheIdleSize(increment);
             // Log(kLog, __FILE__, __LINE__, "Changing central cache idle size of hp_addr", hp.start_addr(), increment, get_central_cache_idle_size(hp));
             // ASSERT(get_central_cache_idle_size(hp) >= 0);
-            if (get_free_size(hp) < 0){
-                Log(kLog, __FILE__, __LINE__, "Total free of hp", hp.start_addr(), get_free_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "Negative free size detected____________________");
-                // Log(kLog, __FILE__, __LINE__, "Operation: add central cache idle");
-                // Log(kLog, __FILE__, __LINE__, "live:", get_live_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "cpu_cache_idle:", get_cpu_cache_idle_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "central_cache_idle:", get_central_cache_idle_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
-                // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
-            }
+            // if (get_free_size(hp) < 0){
+            //     Log(kLog, __FILE__, __LINE__, "Total free of hp", hp.start_addr(), get_free_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "Negative free size detected____________________");
+            //     // Log(kLog, __FILE__, __LINE__, "Operation: add central cache idle");
+            //     // Log(kLog, __FILE__, __LINE__, "live:", get_live_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "cpu_cache_idle:", get_cpu_cache_idle_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "central_cache_idle:", get_central_cache_idle_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
+            //     // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
+            // }
             // ASSERT(get_free_size(hp) >= 0);
         }
 
