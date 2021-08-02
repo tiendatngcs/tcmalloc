@@ -923,7 +923,7 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PopBatch(size_t cl, void** batch,
     Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * int32_t(Static::sizemap().class_to_size(cl)));
   }
   } else {
-    Log(kLog, __FILE__, __LINE__, "Popbatch path 2");
+    // Log(kLog, __FILE__, __LINE__, "Popbatch path 2");
     // Pop items until either all done or a pop fails
     while (n < len && (batch[n] = Pop(cl, NoopUnderflow))) {
       n++;
