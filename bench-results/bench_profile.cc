@@ -75,53 +75,32 @@ static void smem(std::string testSuite, std::string testName, std::string releas
 
 static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, int> &currentObjCount, 
                             FILE *log, std::string testName) {
-    if(!testName.compare("SET"))
-    {
-        if(currentObjCount.size()) {
-            // check current allocation and adjust them accordingly to the profile
-            for(auto itr = currentObjCount.begin(); itr != currentObjCount.end(); ++itr) {
-                // printf("Current: %ld %d\n", itr->first, itr->second);
-                // printf("Profile: %ld %d\n", itr->first, numLivesMap[itr->first]);
-                // we will deallocate by the difference of the profile num lives and the current num of a given sizeclass
-                if(itr->second < numLivesMap[itr->first])
-                    continue;
-                int deallocateNum = abs(numLivesMap[itr->first] - itr->second) + rand() % numLivesMap[itr->first] / 2 + 1;
+    if(currentObjCount.size()) {
+        // check current allocation and adjust them accordingly to the profile
+        for(auto itr = currentObjCount.begin(); itr != currentObjCount.end(); ++itr) {
+            // printf("Current: %ld %d\n", itr->first, itr->second);
+            // printf("Profile: %ld %d\n", itr->first, numLivesMap[itr->first]);
+            // we will deallocate by the difference of the profile num lives and the current num of a given sizeclass
+            if(itr->second < numLivesMap[itr->first])
+                continue;
+            int deallocateNum = abs(numLivesMap[itr->first] - itr->second) + rand() % numLivesMap[itr->first] / 2 + 1;
 
-                // run deallocate shell
-                std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) +
-                                                " " + std::to_string(itr->first) + " " + testName;
-                const char* deallocate = deallocate_string.c_str();
-                time_t now = time(NULL);
-                tm* tm_t = localtime(&now);
-                fprintf(log, "%02d:%02d:%02d\t\t%s\n", tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, deallocate);
-                fflush(log);
-                std::system(deallocate);
+            // run deallocate shell
+            std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) +
+                                            " " + std::to_string(itr->first) + " " + testName;
+            const char* deallocate = deallocate_string.c_str();
+            time_t now = time(NULL);
+            tm* tm_t = localtime(&now);
+            fprintf(log, "%02d:%02d:%02d\t\t%s\n", tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, deallocate);
+            fflush(log);
+            std::system(deallocate);
 
-                // update the real value in the current count by substracting the number of deallocation and
-                // a random number betweem 1 and half of the limit of the current size
-                itr->second -= deallocateNum;
-                sleep(5);
-            }
+            // update the real value in the current count by substracting the number of deallocation and
+            // a random number betweem 1 and half of the limit of the current size
+            itr->second -= deallocateNum;
+            sleep(5);
         }
-    } else if(!testName.compare("LPUSH") || !testName.compare("RPUSH")) {
-        // randomly decide to use LPOP or RPOP
-        int decide = rand() % 10;
-        if(decide <= 4)
-            testName = "LPOP";
-        else
-            testName = "RPOP";
-
-        // run deallocate shell
-        std::string deallocate_string = "./redis/deallocate.sh 0 0 " + testName;
-        const char* deallocate = deallocate_string.c_str();
-        time_t now = time(NULL);
-        tm* tm_t = localtime(&now);
-        fprintf(log, "%02d:%02d:%02d\t\t%s\n", tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, deallocate);
-        fflush(log);
-        std::system(deallocate);
-        sleep(5);
     }
-    
 }
 
 static void benchRedis(std::vector<bench_profile> profile, std::string testSuite, 
@@ -153,25 +132,20 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     
     // run benchmark
     int n = mallocSize.size();
-    int LOOP_COUNT = 100;
-    if(!testName.compare("PUSH"))
-        LOOP_COUNT = 1000000;
+    int LOOP_COUNT = 300;
+
     for (int round = 0; round < LOOP_COUNT; round++) {
         // randomly do deallocation
         double runTime = difftime(time(0), start);
         if(runTime >= deallocateTime) {
-            // // if we are using SET then we dont have to call multiple deallocation
-            // if(!testName.compare("SET"))
-            //     deallocateRedis(numLives, objCount, logFile, testName);
-            // // if we are using PUSH then we have to call the deallocation multiple time
-            // // currently, I will deallocate half of what we have so far
-            // else if(!testName.compare("LPUSH") || !testName.compare("RPUSH")) {
-            //     for(int i = 0; i <= ceil(round / 2); i++)
-            //         deallocateRedis(numLives, objCount, logFile, testName);
-            // }
+            // if we are using SET then we dont have to call multiple deallocation
+            if(!testName.compare("SET"))
+                deallocateRedis(numLives, objCount, logFile, testName);
 
-            // start = time(0);
-            // deallocateTime = rand() % maxTime + minTime;
+            // decide a new deallocation time
+            start = time(0);
+            deallocateTime = rand() % maxTime + minTime;
+
             // don't count the current round
             round -= 1;
         } else {
@@ -206,10 +180,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
             // update the count of each malloc size
             objCount[sizeMalloc] += mallocCount;
 
-            if(!testName.compare("SET"))
-                sleep(5);
-            else if(!testName.compare("LPUSH") || !testName.compare("RPUSH"))
-                sleep(1);
+            sleep(3);
         }
     }
     // moving stat file
@@ -9766,9 +9737,7 @@ int main() {
     // redis test
     std::string testSuite = "redis";
     std::string releaseRate = "0MB";
-    // LPUSH, RPUSH: push to head, tail.
-    // SET: Set key to hold the string value.
-    std::string testName = "PUSH";
+    std::string testName = "SET";
     
     // system optimization
     std::system("./system_optimization.sh");

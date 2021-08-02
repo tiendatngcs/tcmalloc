@@ -891,7 +891,7 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PopBatch(size_t cl, void** batch,
   ASSERT(len != 0);
   size_t n = 0;
   if (Shift == TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT) {
-    Log(kLog, __FILE__, __LINE__, "Popbatch path 1");
+    // Log(kLog, __FILE__, __LINE__, "Popbatch path 1");
 #if TCMALLOC_PERCPU_USE_RSEQ
     // TODO(b/159923407): TcmallocSlab_Internal_PopBatch_FixedShift needs to be
     // refactored to take a 5th parameter (virtual_cpu_id_offset) to avoid
