@@ -1,0 +1,1 @@
+rm ${REDIS}/dump.rdb
