@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <filesystem>
 
 struct bench_profile {
     // The units here actually don't matter so long as they're consistent
@@ -54,10 +55,8 @@ int myRand(std::vector<size_t> arr, std::vector<int> freq, int n) {
 }
 
 // get the size and frequency from a profile
-void getStats(std::vector<bench_profile> profile, 
-              std::vector<size_t> &sizeVec, 
-              std::vector<int> &freqVec,
-              std::map<size_t, int> &numLivesMap) {
+void getStats(std::vector<bench_profile> profile, std::vector<size_t> &sizeVec, 
+              std::vector<int> &freqVec, std::map<size_t, int> &numLivesMap) {
     int s = profile.size();
     for(int i = 0; i < s; i++) {
         sizeVec.push_back(std::ceil(profile[i].size));
@@ -74,7 +73,7 @@ static void smem(std::string testSuite, std::string testName, std::string releas
 }
 
 static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, int> &currentObjCount, 
-                            FILE *log, std::string testName) {
+                            FILE *log, std::string testName, std::string REDIS_PATH) {
     if(currentObjCount.size()) {
         // check current allocation and adjust them accordingly to the profile
         for(auto itr = currentObjCount.begin(); itr != currentObjCount.end(); ++itr) {
@@ -87,7 +86,7 @@ static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, 
 
             // run deallocate shell
             std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) +
-                                            " " + std::to_string(itr->first) + " " + testName;
+                                            " " + std::to_string(itr->first) + " " + testName + " " + REDIS_PATH;
             const char* deallocate = deallocate_string.c_str();
             time_t now = time(NULL);
             tm* tm_t = localtime(&now);
@@ -104,21 +103,22 @@ static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, 
 }
 
 static void benchRedis(std::vector<bench_profile> profile, std::string testSuite, 
-                  std::string testName, std::string releaseRate) {
+                  std::string testName, std::string releaseRate, std::string TCMALLOC_PATH, std::string REDIS_PATH) {
     // initialize
     std::vector<size_t> mallocSize;
     std::vector<int> freq; // the frequency of an malloc size
     std::map<size_t, int> numLives; // the total living object with size x
     getStats(profile, mallocSize, freq, numLives);
+    std::map<size_t, int> objCount; // keep track of the count of the malloc size
 
+    // set up the deallocation time between 1 to 2 minutes
     time_t start = time(0);
     int maxTime = 120;
     int minTime = 60;
     double deallocateTime = rand() % maxTime + minTime;
 
-    std::map<size_t, int> objCount; // keep track of the count of the malloc size
-    srand(time(NULL)); // seed 
-
+    // create a log directory
+    std::filesystem::create_directory("log");
     FILE *logFile;
     std::string temp = "log/" + testName + "-" + releaseRate + ".txt";
     const char* fileName = temp.c_str();;
@@ -127,20 +127,21 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     fflush(logFile);
 
     // start redis
-    std::system("./redis/start_redis.sh");
+    std::string redisString = "./redis/start_redis.sh " + REDIS_PATH;
+    const char* redisShell = redisString.c_str();
+    std::system(redisShell);
     sleep(5);
     
     // run benchmark
     int n = mallocSize.size();
     int LOOP_COUNT = 300;
-
+    srand(time(NULL)); // seed 
     for (int round = 0; round < LOOP_COUNT; round++) {
         // randomly do deallocation
         double runTime = difftime(time(0), start);
         if(runTime >= deallocateTime) {
             // if we are using SET then we dont have to call multiple deallocation
-            if(!testName.compare("SET"))
-                deallocateRedis(numLives, objCount, logFile, testName);
+            deallocateRedis(numLives, objCount, logFile, testName, REDIS_PATH);
 
             // decide a new deallocation time
             start = time(0);
@@ -151,31 +152,18 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
         } else {
             // generate random class size and populate redis
             size_t sizeMalloc = myRand(mallocSize, freq, n);
-
-            // if the test is PUSH we just let it be 1
-            int mallocCount = 1;
-            // if the test is SET then we need to specify the amount of malloc we want to do
-            if(!testName.compare("SET"))
-                mallocCount = rand() % 10000 + 1000;
-            // randomly decide to use LPUSH or RPUSH
-            else if(!testName.compare("PUSH") || !testName.compare("LPUSH") || !testName.compare("RPUSH")) {
-                int decide = rand() % 10;
-                if(decide <= 4)
-                    testName = "LPUSH";
-                else
-                    testName = "RPUSH";
-            }
+            int mallocCount = rand() % 10000 + 1000;
 
             // run shell
-            std::string bench_string = "./redis/bench.sh " + testName + " " + std::to_string(sizeMalloc) +
-                                    " " + std::to_string(mallocCount);
-            const char* bench_shell = bench_string.c_str();
+            std::string benchString = "./redis/bench.sh " + testName + " " + std::to_string(sizeMalloc) +
+                                    " " + std::to_string(mallocCount) + " " + REDIS_PATH;
+            const char* benchShell = benchString.c_str();
             time_t now = time(NULL);
             tm* tm_t = localtime(&now);
             fprintf(logFile, "%02d:%02d:%02d\t\tRound %d: Running redis %s: %s\n", 
-                    tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, round, testName.c_str(), bench_shell);
+                    tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, round, testName.c_str(), benchShell);
             fflush(logFile);
-            std::system(bench_shell);
+            std::system(benchShell);
 
             // update the count of each malloc size
             objCount[sizeMalloc] += mallocCount;
@@ -184,15 +172,19 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
         }
     }
     // moving stat file
-    std::string stat_string = "./redis/stat.sh " + testName + " " + releaseRate;
-    const char* stat_shell = stat_string.c_str();
-    std::system(stat_shell);
+    std::string statString = "./redis/stat.sh " + testName + " " + releaseRate + " " + REDIS_PATH;
+    const char* statShell = statString.c_str();
+    std::system(statShell);
 
     // kill redis server if neccessary
-    std::system("./redis/stop_redis.sh");
+    std::string stopString = "./redis/stop_redis.sh " + REDIS_PATH;
+    const char* stopShell = stopString.c_str();
+    std::system(stopShell);
 
     // delete dumb.rdb
-    std::system("rm /home/minh/Desktop/redis/src/dump.rdb");
+    std::string rdbString = "rm " + REDIS_PATH + "/dump.rdb";
+    const char* rdbShell = rdbString.c_str();
+    std::system(rdbShell);
 
     // kill profiler
     std::system("killall sh -c ./memprofile.sh");
@@ -9734,6 +9726,14 @@ int main() {
         {15922538564, 3.7295341811807706e-06, 3.7262683285823413e-05},
     };
 
+    std::string TCMALLOC_PATH = std::getenv("TCMALLOC");
+    std::string REDIS_PATH = std::getenv("REDIS");
+
+    // build redis
+    std::string redisString = "./build_redis.sh " + REDIS_PATH + " " + TCMALLOC_PATH;
+    const char* redisShell = redisString.c_str();
+    std::system(redisShell);
+
     // redis test
     std::string testSuite = "redis";
     std::string releaseRate = "0MB";
@@ -9746,6 +9746,6 @@ int main() {
     std::thread(smem, testSuite, testName, releaseRate).detach();
 
     // bench
-    benchRedis(Beta, testSuite, testName, releaseRate);
+    benchRedis(Beta, testSuite, testName, releaseRate, TCMALLOC_PATH, REDIS_PATH);
     return 0;
 }

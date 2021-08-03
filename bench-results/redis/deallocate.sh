@@ -2,7 +2,8 @@
 NUM=$1
 MALLOC_SIZE=$2
 TEST=$3
-REDIS_SRC="/home/minh/Desktop/redis/src"
+REDIS_SRC=$4
+
 cd $REDIS_SRC
 if [ $TEST = "SET" ]
 then

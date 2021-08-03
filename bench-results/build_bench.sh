@@ -1,0 +1,1 @@
+g++ bench_profile.cc -o bench_profile -std=c++17 -lpthread

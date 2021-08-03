@@ -1,8 +1,8 @@
 TEST_NAME=$1
 MEMO=$2
+REDIS_SRC=$3
 
 CURRENT_DIR=$(pwd)
-REDIS_SRC="/home/minh/Desktop/redis/src"
 
 echo "moving stat files"
 cd $CURRENT_DIR
