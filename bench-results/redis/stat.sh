@@ -1,5 +1,6 @@
 TEST_NAME=$1
 MEMO=$2
+REDIS_SRC=$3
 
 CURRENT_DIR=$(pwd)
 
