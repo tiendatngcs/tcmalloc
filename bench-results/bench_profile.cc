@@ -113,8 +113,8 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
 
     // set up the deallocation time between 1 to 2 minutes
     time_t start = time(0);
-    int maxTime = 120;
-    int minTime = 60;
+    int maxTime = 12;
+    int minTime = 6;
     double deallocateTime = rand() % maxTime + minTime;
 
     // create a log directory
@@ -132,7 +132,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     
     // run benchmark
     int n = mallocSize.size();
-    int LOOP_COUNT = 300;
+    int LOOP_COUNT = 50;
     srand(time(NULL)); // seed 
     for (int round = 0; round < LOOP_COUNT; round++) {
         // randomly do deallocation

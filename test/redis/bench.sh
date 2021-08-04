@@ -1,16 +1,9 @@
 TEST_NAME=$1
 MEMO=$2
 
-#redis-server is compiled with tcmalloc
 CURRENT_DIR=$(pwd)
-REDIS_SRC=../../../redis/src
-
-#Get path to tcmalloc
-cd ../../bazel-bin/tcmalloc
-TCMALLOC_BIN=$(pwd)
 #Run redis server
 cd $REDIS_SRC
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TCMALLOC_BIN
 ./redis-server&
 REDIS_SERVER_ID=$!
 #Run profiler
