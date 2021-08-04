@@ -1,6 +1,5 @@
 TEST_NAME=$1
 MEMO=$2
-REDIS_SRC=$3
 
 CURRENT_DIR=$(pwd)
 
@@ -18,4 +17,4 @@ then
     mkdir $MEMO
 fi
 cd $MEMO
-mv $REDIS_SRC/stats/* .
+mv ${REDIS_SRC}/stats/* .

@@ -1233,11 +1233,11 @@ cc_binary(
 
 # Minh
 cc_test(
-    name = "huge_page_map_test",
-    srcs = ["huge_page_map_test.cc"],
+    name = "huge_pagemap_test",
+    srcs = ["huge_pagemap_test.cc"],
     copts = TCMALLOC_DEFAULT_COPTS,
     deps = [
-        ":common_deprecated_perthread",
+        ":common",
         "//tcmalloc/internal:optimization",
         "//tcmalloc/internal:util",
         "@com_github_google_benchmark//:benchmark",

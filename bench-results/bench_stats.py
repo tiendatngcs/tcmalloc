@@ -225,7 +225,7 @@ class Driver:
                 Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
 
 
-Driver("redis", ["SET"], ["0MB"])
+Driver("redis", ["SET"], ["10MB"])
 # Driver("mybench", ["mybench"], ["0MB"])
 
     

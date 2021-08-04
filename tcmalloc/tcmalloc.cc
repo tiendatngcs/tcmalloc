@@ -2403,7 +2403,7 @@ class BackgroundWorker{
 
     static void background_subrelease(){
       tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Background release thread started");
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{10 << 20});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
     static void background_release_to_OS(){

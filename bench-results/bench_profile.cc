@@ -9725,7 +9725,7 @@ int main() {
 
     // redis test
     std::string testSuite = "redis";
-    std::string releaseRate = "0MB";
+    std::string releaseRate = "10MB";
     std::string testName = "SET";
     
     // system optimization
