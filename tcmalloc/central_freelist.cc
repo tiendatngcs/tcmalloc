@@ -111,7 +111,7 @@ void CentralFreeList::InsertRange(void** batch, int N) {
       // Returning pages in span to pageheap
       for (PageId page = free_span->first_page(); page <= free_span->last_page(); ++page){
         // Log(kLog, __FILE__, __LINE__, "Page addr", page.start_addr());
-        Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(page), -1 * (int64_t)kPageSize);
+        Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(page), -1 * (int32_t)kPageSize);
       }
       // Dat mod ends
 
@@ -174,7 +174,7 @@ int CentralFreeList::RemoveRange(void** batch, int N) {
     } while (result < N && !nonempty_.empty());
   }
   for (int i = 0; i < result; i++){
-    Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * int64_t(object_size_)); // Dat mod
+    Static::huge_pagemap().add_central_cache_idle_size(HugePageContaining(batch[i]), -1 * (int32_t)object_size_); // Dat mod
   }
   UpdateObjectCounts(-result);
   return result;

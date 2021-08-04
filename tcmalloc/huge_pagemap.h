@@ -50,28 +50,28 @@ class HugePageMap {
         struct HugePageStats {
             HugePageStats() = default;
 
-            void AddLiveSize(int64_t increment){
+            void AddLiveSize(int32_t increment){
                 live_size_.fetch_add(increment);
                 // live_size_.fetch_add(increment, std::memory_order_relaxed);
             }
-            void AddCPUCacheIdleSize(int64_t increment){
+            void AddCPUCacheIdleSize(int32_t increment){
                 cpu_cache_idle_size_.fetch_add(increment);
                 // cpu_cache_idle_size_.fetch_add(increment, std::memory_order_relaxed);
             }
-            void AddCentralCacheIdleSize(int64_t increment){
+            void AddCentralCacheIdleSize(int32_t increment){
                 central_cache_idle_size_.fetch_add(increment);
                 // central_cache_idle_size_.fetch_add(increment, std::memory_order_relaxed);
             }
 
-            int64_t GetLiveSize() const{
+            int32_t GetLiveSize() const{
                 return live_size_.load();
                 // return live_size_.load(std::memory_order_relaxed);
             }
-            int64_t GetCPUCacheIdleSize() const{
+            int32_t GetCPUCacheIdleSize() const{
                 return cpu_cache_idle_size_.load();
                 // return cpu_cache_idle_size_.load(std::memory_order_relaxed);
             }
-            int64_t GetCentralCacheIdleSize() const{
+            int32_t GetCentralCacheIdleSize() const{
                 return central_cache_idle_size_.load();
                 // return central_cache_idle_size_.load(std::memory_order_relaxed);
             }
@@ -85,9 +85,9 @@ class HugePageMap {
                 central_cache_idle_size_ = 0;
             } 
 
-            std::atomic<int64_t> live_size_; // Amount being used by application
-            std::atomic<int64_t> cpu_cache_idle_size_; // Amount sitting idly in CPU cache
-            std::atomic<int64_t> central_cache_idle_size_; // Amount sitting idly in CPU cache
+            std::atomic<int32_t> live_size_; // Amount being used by application
+            std::atomic<int32_t> cpu_cache_idle_size_; // Amount sitting idly in CPU cache
+            std::atomic<int32_t> central_cache_idle_size_; // Amount sitting idly in CPU cache
         };
 
         struct Leaf {
@@ -103,20 +103,20 @@ class HugePageMap {
 
         void* MetaDataAlloc(size_t bytes);
     
-        uint32_t get_i1(void*  addr) const {
+        uintptr_t get_i1(void*  addr) const {
             return reinterpret_cast<uintptr_t>(addr) >> (kHugePageShift + leafBits);
         }
-        uint32_t get_i2(void*  addr) const {
+        uintptr_t get_i2(void*  addr) const {
             return (reinterpret_cast<uintptr_t>(addr) >> kHugePageShift) & (leafLength - 1);
         }
-        uint32_t get_i1(HugePage hp) const {
+        uintptr_t get_i1(HugePage hp) const {
             return get_i1(hp.start_addr());
         }
-        uint32_t get_i2(HugePage hp) const {
+        uintptr_t get_i2(HugePage hp) const {
             return get_i2(hp.start_addr());
         }
-        HugePage get_hp(uint32_t i1, uint32_t  i2) const {
-            return HugePageContaining(reinterpret_cast<void*>((((uint64_t)i1 << leafBits) | (uint64_t)i2) << kHugePageShift));
+        HugePage get_hp(uintptr_t i1, uintptr_t  i2) const {
+            return HugePageContaining(reinterpret_cast<void*>(((i1 << leafBits) | i2) << kHugePageShift));
         }
 
         static SizeMap& sizemap();
@@ -134,8 +134,8 @@ class HugePageMap {
 
         void init_huge_page_stats(HugePage hp){
             absl::base_internal::SpinLockHolder h(&lock_);
-            uint32_t i1 = get_i1(hp);
-            uint32_t i2 = get_i2(hp);
+            uintptr_t i1 = get_i1(hp);
+            uintptr_t i2 = get_i2(hp);
             if (root_[i1] == nullptr){
                 Leaf* leaf = reinterpret_cast<Leaf*>(MetaDataAlloc(sizeof(Leaf)));
                 *leaf = {}; // Init leaf
@@ -147,10 +147,10 @@ class HugePageMap {
             root_[i1]->huge_page_stats[i2] = hp_stats;
         }
 
-        void add_live_size(HugePage hp, int64_t increment){
+        void add_live_size(HugePage hp, int32_t increment){
             absl::base_internal::SpinLockHolder h(&lock_);
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
             ASSERT(root_[i1] != nullptr);
             root_[i1]->huge_page_stats[i2]->AddLiveSize(increment);
             // Log(kLog, __FILE__, __LINE__, "Changing live size of hp_addr", hp.start_addr(), increment, get_live_size(hp));
@@ -166,15 +166,18 @@ class HugePageMap {
             //     // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
             //     // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
             // }
-            // ASSERT(get_free_size(hp) >= 0);
+            ASSERT(get_free_size(hp) >= 0);
         }
 
-        void add_cpu_cache_idle_size(HugePage hp, int64_t increment){
+        void add_cpu_cache_idle_size(HugePage hp, int32_t increment){
             absl::base_internal::SpinLockHolder h(&lock_);
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
             ASSERT(root_[i1] != nullptr);
             root_[i1]->huge_page_stats[i2]->AddCPUCacheIdleSize(increment);
+            // Log(kLog, __FILE__, __LINE__, "Changing CPU cache idle size:", hp.start_addr(), increment, get_cpu_cache_idle_size(hp));
+            // Log(kLog, __FILE__, __LINE__, "i1 i2:", i1, i2);
+            // Log(kLog, __FILE__, __LINE__, "HP addr:", hp.start_addr(), get_hp(i1, i2).start_addr());
             // Log(kLog, __FILE__, __LINE__, "Changing cpu cache idle size of hp_addr", hp.start_addr(), increment, get_cpu_cache_idle_size(hp));
             // ASSERT(get_cpu_cache_idle_size(hp) >= 0);
             // if (get_free_size(hp) < 0){
@@ -188,13 +191,13 @@ class HugePageMap {
             //     // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
             //     // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
             // }
-            // ASSERT(get_free_size(hp) >= 0);
+            ASSERT(get_free_size(hp) >= 0);
         }
 
-        void add_central_cache_idle_size(HugePage hp, int64_t increment){
+        void add_central_cache_idle_size(HugePage hp, int32_t increment){
             absl::base_internal::SpinLockHolder h(&lock_);
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
             ASSERT(root_[i1] != nullptr);
             root_[i1]->huge_page_stats[i2]->AddCentralCacheIdleSize(increment);
             // Log(kLog, __FILE__, __LINE__, "Changing central cache idle size of hp_addr", hp.start_addr(), increment, get_central_cache_idle_size(hp));
@@ -209,49 +212,71 @@ class HugePageMap {
             //     // Log(kLog, __FILE__, __LINE__, "free:", get_free_size(hp));
             //     // Log(kLog, __FILE__, __LINE__, "--------------------------------------------------------------");
             // }
-            // ASSERT(get_free_size(hp) >= 0);
+            ASSERT(get_free_size(hp) >= 0);
         }
 
         int32_t get_live_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
-            if (root_[i1] == nullptr) return 0;
-            if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
+            ASSERT(root_[i1] != nullptr);
+            ASSERT(root_[i1]->huge_page_stats[i2] != nullptr);
+            // if (root_[i1] == nullptr){
+            //     Log(kLog, __FILE__, __LINE__, "Huge page does not exist at ", hp.start_addr());
+            //     return 0;
+            // }
+            // if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
             return root_[i1]->huge_page_stats[i2]->GetLiveSize();
         }
 
         int32_t get_cpu_cache_idle_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
-            if (root_[i1] == nullptr) return 0;
-            if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
+            ASSERT(root_[i1] != nullptr);
+            ASSERT(root_[i1]->huge_page_stats[i2] != nullptr);
+            // if (root_[i1] == nullptr){
+            //     Log(kLog, __FILE__, __LINE__, "Huge page does not exist at ", hp.start_addr());
+            //     return 0;
+            // }
+            // if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
             return root_[i1]->huge_page_stats[i2]->GetCPUCacheIdleSize();
         }
         
         int32_t get_central_cache_idle_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
-            if (root_[i1] == nullptr) return 0;
-            if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
+            ASSERT(root_[i1] != nullptr);
+            ASSERT(root_[i1]->huge_page_stats[i2] != nullptr);
+            // if (root_[i1] == nullptr){
+            //     Log(kLog, __FILE__, __LINE__, "Huge page does not exist at ", hp.start_addr());
+            //     return 0;
+            // }
+            // if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
             return root_[i1]->huge_page_stats[i2]->GetCentralCacheIdleSize();
         }
 
         int32_t get_free_size(HugePage hp)  {
-            uint32_t i1 = get_i1(hp.start_addr());
-            uint32_t i2 = get_i2(hp.start_addr());
-            if (root_[i1] == nullptr) return 0;
-            if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
+            uintptr_t i1 = get_i1(hp.start_addr());
+            uintptr_t i2 = get_i2(hp.start_addr());
+            ASSERT(root_[i1] != nullptr);
+            ASSERT(root_[i1]->huge_page_stats[i2] != nullptr);
+            // if (root_[i1] == nullptr){
+            //     Log(kLog, __FILE__, __LINE__, "Huge page does not exist at ", hp.start_addr());
+            //     return 0;
+            // }
+            // if (root_[i1]->huge_page_stats[i2] == nullptr) return 0;
             return root_[i1]->huge_page_stats[i2]->GetFreeSize();
         }
 
         void PrintStats(Printer *out){
             // uintptr_t hp_addr;
+            absl::base_internal::SpinLockHolder h(&lock_);
             void* hp_addr;
             out->printf("------------------------------------------------\n");
             out->printf("HugePageMap Stats. Per-HugePage memory usage:\n");
             out->printf("------------------------------------------------\n");
-            for (uint32_t i1 = 0; i1 < rootLength; i1++){
+            for (uintptr_t i1 = 0; i1 < rootLength; i1++){
                 if (root_[i1] != nullptr){
+<<<<<<< HEAD
                     for (uint32_t i2 = 0; i2 < leafLength; i2++){
                         if (root_[i1]->huge_page_stats[i2] != nullptr){
                         hp_addr = get_hp(i1, i2).start_addr();
@@ -267,6 +292,22 @@ class HugePageMap {
                             get_central_cache_idle_size(HugePageContaining(hp_addr)),
                             get_free_size(HugePageContaining(hp_addr)));
                         }
+=======
+                for (uintptr_t i2 = 0; i2 < leafLength; i2++){
+                    if (root_[i1]->huge_page_stats[i2] != nullptr){
+                        hp_addr = get_hp(i1, i2).start_addr();
+                        out->printf("HugePage at addr %p\n"
+                        "\tLive size: %12d bytes\n"
+                        "\tCPU Cache Idle size: %12d bytes\n"
+                        "\tCentral Cache Idle size: %12d bytes\n"
+                        "\tFree size: %12d bytes\n"
+                        "------------------\n",
+                        hp_addr,
+                        get_live_size(HugePageContaining(hp_addr)),
+                        get_cpu_cache_idle_size(HugePageContaining(hp_addr)),
+                        get_central_cache_idle_size(HugePageContaining(hp_addr)),
+                        get_free_size(HugePageContaining(hp_addr)));
+>>>>>>> 699a7704088b7990f61aac8c96fdbf1a9d08998d
                     }
                 }
             }

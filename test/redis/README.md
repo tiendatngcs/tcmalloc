@@ -1,39 +1,28 @@
 # How to set up tcmalloc for redis
 ## 0. Setup
-```shell
-    |
-    |_ redis
-    |  :
-    |  :
-    |  |_ src
-    |     :
-    |     :
-    |     |_Makefile
-    |
-    |_ tcmalloc
-       :
-       :
-       |_ test
-          |_ redis <you are here>
-             :
-             :
-
-```
 Requirements
 ```
+redis
+tcmalloc
 make
 bazel
-# make sure the redis folder is 'redis', without trailing version numbers.
+smem
 ```
 ## 1. Build tcmalloc
 ```shell
 ../../build.sh
 ```
-
-## 2. Mod redis Makefile
+## 2. Set environemnt variables
+Add the following lines to ~/.bashrc
+```shell
+export TCMALLOC_BIN="/path/to/tcmalloc/bazel-bin/tcmalloc"
+export REDIS_SRC="/path/to/redis/src"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$TCMALLOC_BIN"
+```
+## 3. Mod redis Makefile
 * go to redis source
 ```shell
-cd ../../../redis/src
+cd $REDIS_SRC
 ```
 * open Makefile file
 * add the following lines to line 235 in Makefile
@@ -46,14 +35,9 @@ endif
 # Dat mod ends
 
 ```
-## 3. Build redis
+## 4. Build redis
 ```shell
 ./build.sh
-```
-## 4. Set LD_LIBRARY_PATH as shown on terminal from redis build result
-```shell
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:absolute/path/to/tcmalloc/bazel-bin/tcmalloc
-echo $LD_LIBRARY_PATH
 ```
 ## 5. Run redis-server
 ```shell

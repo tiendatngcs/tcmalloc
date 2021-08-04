@@ -30,6 +30,7 @@
 
 // Dat mod
 #include "tcmalloc/huge_pages.h"
+#include "tcmalloc/internal/logging.h"
 
 // Minh
 #include "tcmalloc/static_vars.h"
@@ -524,9 +525,13 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE bool TcmallocSlab<Shift, NumClasses>::Push(
     size_t cl, void* item, OverflowHandler f) {
   ASSERT(item != nullptr);
   bool result;
+  bool overflow_activated;
+  int push_result;
 #if defined(__x86_64__) || defined(__aarch64__)
-  result = TcmallocSlab_Internal_Push<Shift, NumClasses>(
-             slabs_, cl, item, f, virtual_cpu_id_offset_) >= 0;
+  push_result = TcmallocSlab_Internal_Push<Shift, NumClasses>(
+             slabs_, cl, item, f, virtual_cpu_id_offset_);
+  result = push_result >= 0;
+  overflow_activated = push_result == 1;
 #else
   if (Shift == TCMALLOC_PERCPU_TCMALLOC_FIXED_SLAB_SHIFT) {
     result = TcmallocSlab_Internal_Push_FixedShift(slabs_, cl, item, f) >= 0;
@@ -536,7 +541,7 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE bool TcmallocSlab<Shift, NumClasses>::Push(
 #endif
   ASSERT(item != nullptr);
   // Dat mod
-  if (result){
+  if (!overflow_activated){
     Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(item), Static::sizemap().class_to_size(cl));
   }
   // Dat mod ends
@@ -819,7 +824,7 @@ inline ABSL_ATTRIBUTE_ALWAYS_INLINE void* TcmallocSlab<Shift, NumClasses>::Pop(
   }
 #endif
   ASSERT(result != nullptr);
-  Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(result), -1 * int32_t (Static::sizemap().class_to_size(cl))); // Dat mod
+  Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(result), -1 * int32_t(Static::sizemap().class_to_size(cl))); // Dat mod
   return result;
 }
 
@@ -900,11 +905,13 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PopBatch(size_t cl, void** batch,
     switch (virtual_cpu_id_offset_) {
       case offsetof(kernel_rseq, cpu_id):
         n = TcmallocSlab_Internal_PopBatch_FixedShift(slabs_, cl, batch, len);
+        // Log(kLog, __FILE__, __LINE__, "Popped", n, Static::sizemap().class_to_size(cl));
         break;
 #ifdef __x86_64__
       case offsetof(kernel_rseq, vcpu_id):
         n = TcmallocSlab_Internal_PopBatch_FixedShift_VCPU(slabs_, cl, batch,
                                                            len);
+        // Log(kLog, __FILE__, __LINE__, "Popped", n, Static::sizemap().class_to_size(cl));
         break;
 #endif  // __x86_64__
       default:
@@ -917,13 +924,12 @@ inline size_t TcmallocSlab<Shift, NumClasses>::PopBatch(size_t cl, void** batch,
 #else  // !TCMALLOC_PERCPU_USE_RSEQ
     __builtin_unreachable();
 #endif  // !TCMALLOC_PERCPU_USE_RSEQ
-  // Per-hugepage count. Alse branch below is already handled by Pop()
-  for (int i = 0; i < n; i++){
-    // temp
-    Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * int32_t(Static::sizemap().class_to_size(cl)));
-  }
+    // Per-hugepage count. Alse branch below is already handled by Pop()
+    for (int i = 0; i < n; i++){
+      Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[i]), -1 * int32_t(Static::sizemap().class_to_size(cl)));
+    }
   } else {
-    // Log(kLog, __FILE__, __LINE__, "Popbatch path 2");
+    Log(kLog, __FILE__, __LINE__, "Popbatch path 2");
     // Pop items until either all done or a pop fails
     while (n < len && (batch[n] = Pop(cl, NoopUnderflow))) {
       n++;
@@ -1161,6 +1167,7 @@ void TcmallocSlab<Shift, NumClasses>::Destroy(void(free)(void*)) {
 template <size_t Shift, size_t NumClasses>
 void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
                                             DrainHandler f) {
+  Log(kLog, __FILE__, __LINE__, "Draining slab");
   CHECK_CONDITION(cpu >= 0);
   CHECK_CONDITION(cpu < absl::base_internal::NumCPUs());
   const size_t virtual_cpu_id_offset = virtual_cpu_id_offset_;

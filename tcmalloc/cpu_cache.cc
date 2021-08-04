@@ -441,6 +441,7 @@ size_t CPUCache::Steal(int cpu, size_t dest_cl, size_t bytes,
 }
 
 int CPUCache::Overflow(void *ptr, size_t cl, int cpu) {
+  // Log(kLog, __FILE__, __LINE__, "Overflow starts", Static::sizemap().class_to_size(cl));
   const size_t batch_length = Static::sizemap().num_objects_to_move(cl);
   const size_t target = UpdateCapacity(cpu, cl, batch_length, true, nullptr);
   // Return target objects in batch_length batches.
@@ -463,6 +464,7 @@ int CPUCache::Overflow(void *ptr, size_t cl, int cpu) {
     count = 0;
   } while (total < target && cpu == freelist_.GetCurrentVirtualCpuUnsafe());
   tracking::Report(kFreeTruncations, cl, 1);
+  // Log(kLog, __FILE__, __LINE__, "Overflow ends");
   return 1;
 }
 
