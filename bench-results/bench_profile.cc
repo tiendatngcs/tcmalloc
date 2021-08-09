@@ -85,8 +85,8 @@ static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, 
             int deallocateNum = abs(numLivesMap[itr->first] - itr->second) + rand() % numLivesMap[itr->first] / 2 + 1;
 
             // run deallocate shell
-            std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) +
-                                            " " + std::to_string(itr->first) + " " + testName;
+            std::string deallocate_string = "./redis/deallocate.sh " + std::to_string(deallocateNum) + 
+                                            " " + std::to_string(itr->first);
             const char* deallocate = deallocate_string.c_str();
             time_t now = time(NULL);
             tm* tm_t = localtime(&now);
@@ -99,6 +99,7 @@ static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, 
             itr->second -= deallocateNum;
             sleep(5);
         }
+        printf("----------------------------------------------------------\n");
     }
 }
 
@@ -113,8 +114,8 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
 
     // set up the deallocation time between 1 to 2 minutes
     time_t start = time(0);
-    int maxTime = 12;
-    int minTime = 6;
+    int maxTime = 120;
+    int minTime = 60;
     double deallocateTime = rand() % maxTime + minTime;
 
     // create a log directory
@@ -132,7 +133,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     
     // run benchmark
     int n = mallocSize.size();
-    int LOOP_COUNT = 50;
+    int LOOP_COUNT = 500;
     srand(time(NULL)); // seed 
     for (int round = 0; round < LOOP_COUNT; round++) {
         // randomly do deallocation
@@ -166,7 +167,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
             // update the count of each malloc size
             objCount[sizeMalloc] += mallocCount;
 
-            sleep(3);
+            sleep(5);
         }
     }
     // moving stat file
@@ -9725,7 +9726,7 @@ int main() {
 
     // redis test
     std::string testSuite = "redis";
-    std::string releaseRate = "10MB";
+    std::string releaseRate = "0MB";
     std::string testName = "SET";
     
     // system optimization

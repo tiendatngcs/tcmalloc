@@ -276,23 +276,6 @@ class HugePageMap {
             out->printf("------------------------------------------------\n");
             for (uintptr_t i1 = 0; i1 < rootLength; i1++){
                 if (root_[i1] != nullptr){
-<<<<<<< HEAD
-                    for (uint32_t i2 = 0; i2 < leafLength; i2++){
-                        if (root_[i1]->huge_page_stats[i2] != nullptr){
-                        hp_addr = get_hp(i1, i2).start_addr();
-                        out->printf("HugePage at addr %p\n"
-                            "\tLive size: %12d bytes\n"
-                            "\tCPU Cache Idle size: %12d bytes\n"
-                            "\tCentral Cache Idle size: %12d bytes\n"
-                            "\tFree size: %12d bytes\n"
-                            "------------------\n",
-                            hp_addr,
-                            get_live_size(HugePageContaining(hp_addr)),
-                            get_cpu_cache_idle_size(HugePageContaining(hp_addr)),
-                            get_central_cache_idle_size(HugePageContaining(hp_addr)),
-                            get_free_size(HugePageContaining(hp_addr)));
-                        }
-=======
                 for (uintptr_t i2 = 0; i2 < leafLength; i2++){
                     if (root_[i1]->huge_page_stats[i2] != nullptr){
                         hp_addr = get_hp(i1, i2).start_addr();
@@ -307,11 +290,11 @@ class HugePageMap {
                         get_cpu_cache_idle_size(HugePageContaining(hp_addr)),
                         get_central_cache_idle_size(HugePageContaining(hp_addr)),
                         get_free_size(HugePageContaining(hp_addr)));
->>>>>>> 699a7704088b7990f61aac8c96fdbf1a9d08998d
                     }
                 }
             }
         }
+    }
 };
 }  // namespace tcmalloc_internal
 }  // namespace tcmalloc
