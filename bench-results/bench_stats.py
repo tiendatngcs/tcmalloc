@@ -10,7 +10,7 @@ from natsort import natsorted
 
 class Log:
     def __init__(self, DIR, test_name):
-        self.LOG_DIR = os.path.join(DIR, "log/")
+        self.LOG_DIR = DIR
         self.file_name = self.LOG_DIR + test_name + ".txt"
         self.deallocate_time = set()
         self.offset = 0
@@ -47,9 +47,9 @@ class Log:
 
 
 class Benchmark_Stat:
-    def __init__(self, DIR, test_name, deallocate_log=None):
+    def __init__(self, DIR, PIC_DIR, test_name, deallocate_log=None):
         self.DIR = DIR
-        self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
+        self.PIC_DIR = PIC_DIR
         self.test_name = test_name
 
         self.pattern1 = "Total(\s*)\d+ Hugepage\(s\) stranded in all cpu caches."
@@ -137,10 +137,9 @@ class Benchmark_Stat:
 
 
 class Memory_Stat:
-    def __init__(self, DIR, test_name, deallocate_log=None):
+    def __init__(self, DIR, PIC_DIR, test_name, deallocate_log=None):
         self.DIR = DIR
-        self.PIC_DIR = os.path.join("/home/minh/Desktop/tcmalloc/bench-results/", "pic/")
-
+        self.PIC_DIR = PIC_DIR
         self.pic_name = test_name
         self.deallocate_log = deallocate_log
 
@@ -187,16 +186,82 @@ class Memory_Stat:
         plt.show()
 
 
+class GraphHugePageStats:
+    def __init__(self, dir, PIC_DIR, profile, log):
+        self.dict_list = None
+        self.read_files(dir)
+        self.deallocate_log = log
+        self.PIC_DIR = PIC_DIR
+        self.pic_name = profile
+
+    def read_files(self, dir):
+        dict_list = list()
+        file_list = [os.path.join(dir, f) for f in os.listdir(dir)]
+        file_list.sort()
+        file_list.sort(key=len)
+        for file in file_list:
+            hp_dict = dict()
+            f = open(file, "r")
+            read = f.read()
+            pattern = "HugePage at addr .+\n\tLive size:\s*\d+\sbytes\n\tCPU Cache Idle size:\s*\d+\sbytes\n\tCentral Cache Idle size:\s*\d+\sbytes\n\tFree size:\s*\d+\sbytes"
+            hp_text_list = re.findall(pattern, read)
+            for hp_text in hp_text_list:
+                hp_text_lines = hp_text.split("\n")
+                addr = hp_text_lines[0].split()[-1]
+                live = int(hp_text_lines[1].split()[-2])
+                cpu_cache_idle = int(hp_text_lines[2].split()[-2])
+                # hp_dict[addr] = (live, cpu_cache_idle)
+                if live != 0 or cpu_cache_idle != 0:
+                    hp_dict[addr] = (live, cpu_cache_idle)
+            dict_list.append(hp_dict)
+        self.dict_list = dict_list
+    
+    def graph_histogram(self, timestamp=0):
+        uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in self.dict_list[timestamp].values() if (cpu+1)/(live+1) != 0]
+        # uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in self.dict_list[timestamp].values()]
+        if 0 in uselessness_list: print("There is 0")
+        n, bins, patches = plt.hist(x=uselessness_list, bins=100, color='#0504aa')
+        plt.grid(axis='y', alpha=0.75)
+        plt.xlabel('CPU Cache Idle : Live')
+        plt.ylabel('Frequency')
+        plt.title('Histogram at time stamp' + str(timestamp))
+        # maxfreq = n.max()
+        # Set a clean upper y-axis limit.
+        # plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+        plt.show()
+
+    def graph_timeseries(self):
+        x = list(range(len(self.dict_list)))
+        means = list()
+        stds = list()
+        for hp_dict in self.dict_list:
+            uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in hp_dict.values()]
+            means.append(np.mean(uselessness_list))
+            stds.append(np.std(uselessness_list))
+        if self.deallocate_log:
+            for coor in self.deallocate_log:
+                plt.axvline(x=coor, c="skyblue", ls='--')
+        plt.errorbar(x=x, y=means, yerr=stds, ecolor="r")
+        plt.xlabel('Time (s)')
+        plt.ylabel('Mean of CPU Cache Idle : Live')
+        plt.title(self.pic_name)
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.pic_name  + '-Mean CPU Cache Idle.png'), dpi = 100)
+        plt.show()
+
+
 class Driver:
-    def __init__(self, test_suite, tests, release_rates):
-        self.redis_smem_dir = "/home/minh/Desktop/tcmalloc/bench-results/smem/"
-        self.redis_stat_dir = "/home/minh/Desktop/tcmalloc/bench-results/stats/"
-        self.redis_log_dir = "/home/minh/Desktop/tcmalloc/bench-results/"
-
-        self.mybench_smem_dir = "/home/minh/Desktop/tcmalloc/mybench/smem/"
-        self.mybench_stat_dir = "/home/minh/Desktop/tcmalloc/mybench/stats/"
-        self.mybench_log_dir = "/home/minh/Desktop/tcmalloc/mybench/"
-
+    def __init__(self, test_suite, tests, release_rates, dir, profile_name):
+        self.redis_smem_dir = dir + "smem/" + profile_name + "/"
+        self.redis_stat_dir = dir + "stats/" + profile_name + "/"
+        self.redis_log_dir = dir + "log/" + profile_name + "/"
+        self.redis_pic_dir = dir + "pic/" + profile_name + "/"
+        try:
+            os.mkdir(self.redis_pic_dir)
+        except FileExistsError:
+            pass
+        self.profile = profile_name
         self.tests = tests
         self.release_rates = release_rates
         self.deallocate_log = None
@@ -212,20 +277,12 @@ class Driver:
                 current_stat_dir = self.redis_stat_dir + test_name + "/" + rate
                 current_smem_dir = self.redis_smem_dir + test_name + "/" + rate
                 deallocate_log = Log(self.redis_log_dir, test_name + "-" + rate).get_log()
-                Benchmark_Stat(current_stat_dir, test_name + "-" + rate, deallocate_log)
-                Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
-    
-    def run_mybench(self):
-        for test_name in self.tests:
-            for rate in self.release_rates: 
-                current_stat_dir = self.mybench_stat_dir + test_name + "/" + rate
-                current_smem_dir = self.mybench_smem_dir + test_name + "/" + rate
-                deallocate_log = Log(self.mybench_log_dir, test_name + "-" + rate).get_log()
-                Benchmark_Stat(current_stat_dir, test_name + "-" + rate, deallocate_log)
-                Memory_Stat(current_smem_dir, test_name + "-" + rate, deallocate_log)
+                pic_name = self.profile + "-" + test_name + "-" + rate
+                Benchmark_Stat(current_stat_dir, self.redis_pic_dir, pic_name, deallocate_log)
+                Memory_Stat(current_smem_dir, self.redis_pic_dir, pic_name, deallocate_log)
+                g = GraphHugePageStats(current_stat_dir, self.redis_pic_dir, pic_name, deallocate_log)
+                # g.graph_histogram(3000)
+                g.graph_timeseries()
 
-
-Driver("redis", ["SET"], ["0MB"])
-# Driver("mybench", ["mybench"], ["0MB"])
-
+Driver("redis", ["SET"], ["0MB"], "/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/bench-results/", "Bravo")
     

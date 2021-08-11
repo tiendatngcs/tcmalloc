@@ -1,6 +1,7 @@
 TEST_SUITE=$1
 TEST_NAME=$2
 RELEASE_RATE=$3
+PROFILE=$4
 
 TIME_STAMP=$(date +%m_%d_%y)
 CURRENT_DIR=$(pwd)
@@ -9,11 +10,13 @@ echo $TEST_NAME
 
 mkdir smem
 cd smem
+mkdir $PROFILE
+cd $PROFILE
 mkdir $TEST_NAME
 cd $TEST_NAME
 mkdir $RELEASE_RATE
 cd $CURRENT_DIR
-SMEM_FILE=./smem/$TEST_NAME/$RELEASE_RATE/$TIME_STAMP.txt
+SMEM_FILE=./smem/$PROFILE/$TEST_NAME/$RELEASE_RATE/$TIME_STAMP.txt
 # check if file exists, if yes then remove
 if [ -e $SMEM_FILE ]
 then
