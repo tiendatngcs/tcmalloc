@@ -2366,24 +2366,6 @@ extern char* __progname;
 //Dat mod
 class BackgroundWorker{
   public:
-    // static void write_stats_to_file(){
-    //   tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Writting Stats to File");
-    //   int count = 0;
-    //   if(std::filesystem::is_directory("stats"))
-    //     std::filesystem::remove_all("stats");
-    //   std::filesystem::create_directory("stats");
-    //   std::ofstream out_file;
-    //   while(true) {
-    //     if (Static::CPUCacheActive()) {
-    //       out_file.open("stats/stats_" + std::to_string(count) + ".txt");
-    //       out_file << tcmalloc::MallocExtension::GetStats();
-    //       out_file.close();
-    //       count++;
-    //     }
-    //     sleep(1);
-    //   }
-    // }
-
     static void write_stats_to_file(){
       int count = 0;
       while (!Static::CPUCacheActive()){sleep(0.1);}
@@ -2403,12 +2385,21 @@ class BackgroundWorker{
 
     static void background_subrelease(){
       tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Background release thread started");
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{10 << 20});
-      MallocExtension_Internal_ProcessBackgroundActions();
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
+      MallocExtension_Internal_Background_ReleaseMemoryToSystem_Only();
     }
-    static void background_release_to_OS(){
-      std::cout << "Thread: background_release_to_OS started." << std::endl;
+
+    static void background_drain_cpu() {
+      double THRESHOLD = 1000; // 1KB
+      while(true) {
+        double ratio = Static::huge_pagemap().get_all_cpu_cache_ratio();
+        if(ratio >= THRESHOLD) {
+          MallocExtension_Internal_Background_ReleasePerCpuMemoryToOS_Only();
+        }
+        sleep(1);
+      }
     }
+
     static void Init(){
       const char *progname[] = {"redis-server", "hello_world", "firefox"};
       std::cout << __progname << std::endl;
@@ -2416,6 +2407,7 @@ class BackgroundWorker{
         if(strcmp(__progname, x) == 0) {
           std::thread(write_stats_to_file).detach();
           std::thread(background_subrelease).detach();
+          std::thread(background_drain_cpu).detach();
           break;
         }
       }

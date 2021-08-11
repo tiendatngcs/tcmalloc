@@ -99,6 +99,8 @@ ABSL_ATTRIBUTE_WEAK void MallocExtension_Internal_SetProfileSamplingRate(
     int64_t);
 
 ABSL_ATTRIBUTE_WEAK void MallocExtension_Internal_ProcessBackgroundActions();
+ABSL_ATTRIBUTE_WEAK void MallocExtension_Internal_Background_ReleaseMemoryToSystem_Only();
+ABSL_ATTRIBUTE_WEAK void MallocExtension_Internal_Background_ReleasePerCpuMemoryToOS_Only();
 
 ABSL_ATTRIBUTE_WEAK tcmalloc::MallocExtension::BytesPerSecond
 MallocExtension_Internal_GetBackgroundReleaseRate();
