@@ -2389,14 +2389,17 @@ class BackgroundWorker{
       MallocExtension_Internal_Background_ReleaseMemoryToSystem_Only();
     }
 
-    static void background_drain_cpu() {
+    static void background_drain_cpu(int drainCheckCycle) {
       double THRESHOLD = 1000; // 1KB
-      while(true) {
-        double ratio = Static::huge_pagemap().get_all_cpu_cache_ratio();
-        if(ratio >= THRESHOLD) {
-          MallocExtension_Internal_Background_ReleasePerCpuMemoryToOS_Only();
+      // we don't drain when drainCheckCycle == 0
+      if (drainCheckCycle != 0){
+        while(true) {
+          double ratio = Static::huge_pagemap().get_all_cpu_cache_ratio();
+          if(ratio >= THRESHOLD) {
+            MallocExtension_Internal_ReleasePerCpuMemoryToOS_Only();
+          }
+          sleep(drainCheckCycle);
         }
-        sleep(1);
       }
     }
 
@@ -2407,7 +2410,7 @@ class BackgroundWorker{
         if(strcmp(__progname, x) == 0) {
           std::thread(write_stats_to_file).detach();
           std::thread(background_subrelease).detach();
-          std::thread(background_drain_cpu).detach();
+          std::thread(background_drain_cpu, /*drainCheckCycle =*/0).detach();
           break;
         }
       }
@@ -2418,33 +2421,6 @@ class BackgroundWorker{
 GOOGLE_MALLOC_SECTION_BEGIN
 namespace tcmalloc {
 namespace tcmalloc_internal {
-  // class ProgEndTasks{
-
-  // public:
-  //   void get_hugepage_object_status(){
-  //     // Getting huge addressmap
-  //     // char ret[1 << 22];
-  //     // Printer out = Printer(ret, 1 << 22); // Bug
-  //     HugeAddressMap::Node* current_node = Static::page_allocator().huge_allocator()->huge_address_map().first();
-  //     HugeLength idx;
-  //     do{
-  //       HugeRange r = current_node->range();
-  //       for (double i = 0; i < r.len().raw_num(); i++){
-  //         idx = HugeLength(i);
-  //         HugePage p = r[idx];
-  //         // p.print_object_status(&out);
-  //       }
-  //       current_node = current_node->next();
-  //     } while(current_node != nullptr);
-  //     // printf("%s", &ret[0]);
-  //     // return ret;
-  //   }
-
-  //   void dummy(){
-  //     HugeAddressMap::Node* current_node = Static::page_allocator().huge_allocator()->huge_address_map().first();
-  //     current_node->range();
-  //   }
-  // };
 namespace {
 
 // The constructor allocates an object to ensure that initialization
@@ -2464,8 +2440,6 @@ class TCMallocGuard {
 
     // create thread to check the stats
     BackgroundWorker::Init();
-    // ProgEndTasks tasks = ProgEndTasks();
-    // tasks.dummy();
   }
   ~TCMallocGuard() {
   }

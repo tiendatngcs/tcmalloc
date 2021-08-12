@@ -138,7 +138,7 @@ void MallocExtension_Internal_Background_ReleaseMemoryToSystem_Only() {
   }
 }
 
-void MallocExtension_Internal_Background_ReleasePerCpuMemoryToOS_Only() {
+void MallocExtension_Internal_ReleasePerCpuMemoryToOS_Only() {
   tcmalloc::MallocExtension::MarkThreadIdle();
 
   // Initialize storage for ReleasePerCpuMemoryToOS().

@@ -230,7 +230,7 @@ class GraphHugePageStats:
         # plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
         plt.show()
 
-    def graph_timeseries(self):
+    def graph_mean_std_timeseries(self):
         x = list(range(len(self.dict_list)))
         means = list()
         stds = list()
@@ -249,19 +249,42 @@ class GraphHugePageStats:
         fig.set_size_inches(18.5, 10.5)
         fig.savefig(os.path.join(self.PIC_DIR, self.pic_name  + '-Mean CPU Cache Idle.png'), dpi = 100)
         plt.show()
+    
+    def graph_mean_median_timeseries(self):
+        x = list(range(len(self.dict_list)))
+        means = list()
+        medians = list()
+        for hp_dict in self.dict_list:
+            uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in hp_dict.values()]
+            means.append(np.mean(uselessness_list))
+            medians.append(np.median(uselessness_list))
+        if self.deallocate_log:
+            for coor in self.deallocate_log:
+                plt.axvline(x=coor, c="skyblue", ls='--')
+        plt.plot(x, means,label="mean")
+        plt.plot(x, medians,label="median")
+        plt.xlabel('Time (s)')
+        plt.ylabel('Mean and Median of CPU Cache Idle : Live')
+        plt.title(self.pic_name)
+        plt.legend()
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.pic_name  + '-Mean Median CPU Cache Idle.png'), dpi = 100)
+        plt.show()
 
 
 class Driver:
-    def __init__(self, test_suite, tests, release_rates, dir, profile_name):
+    def __init__(self, test_suite, tests, release_rates, dir, profile_name, drain_check_cycle):
         self.redis_smem_dir = dir + "smem/" + profile_name + "/"
         self.redis_stat_dir = dir + "stats/" + profile_name + "/"
-        self.redis_log_dir = dir + "log/" + profile_name + "/"
+        self.redis_log_dir = dir + "log/"
         self.redis_pic_dir = dir + "pic/" + profile_name + "/"
         try:
             os.mkdir(self.redis_pic_dir)
         except FileExistsError:
             pass
-        self.profile = profile_name
+        self.profile_name = profile_name
+        self.drain_check_cycle = drain_check_cycle
         self.tests = tests
         self.release_rates = release_rates
         self.deallocate_log = None
@@ -274,15 +297,21 @@ class Driver:
     def run_redis(self):
         for test_name in self.tests:
             for rate in self.release_rates:
-                current_stat_dir = self.redis_stat_dir + test_name + "/" + rate
-                current_smem_dir = self.redis_smem_dir + test_name + "/" + rate
-                deallocate_log = Log(self.redis_log_dir, test_name + "-" + rate).get_log()
-                pic_name = self.profile + "-" + test_name + "-" + rate
+                current_stat_dir = self.redis_stat_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
+                current_smem_dir = self.redis_smem_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
+                deallocate_log = Log(self.redis_log_dir, self.profile_name + "-" + test_name + "-" + rate + "-" + self.drain_check_cycle).get_log()
+                pic_name = self.profile_name + "-" + test_name + "-" + rate + "-" + self.drain_check_cycle
                 Benchmark_Stat(current_stat_dir, self.redis_pic_dir, pic_name, deallocate_log)
                 Memory_Stat(current_smem_dir, self.redis_pic_dir, pic_name, deallocate_log)
                 g = GraphHugePageStats(current_stat_dir, self.redis_pic_dir, pic_name, deallocate_log)
                 # g.graph_histogram(3000)
-                g.graph_timeseries()
+                g.graph_mean_median_timeseries()
+                g.graph_mean_std_timeseries()
 
-Driver("redis", ["SET"], ["0MB"], "/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/bench-results/", "Bravo")
+Driver(test_suite="redis",
+       tests=["SET"],
+       release_rates=["0MB"],
+       dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/bench-results/",
+       profile_name="Beta",
+       drain_check_cycle="0s")
     

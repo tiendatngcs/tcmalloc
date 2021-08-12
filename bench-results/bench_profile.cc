@@ -66,10 +66,9 @@ void getStats(std::vector<bench_profile> profile, std::vector<size_t> &sizeVec,
 }
 
 // run the memory profiler
-static void smem(std::string testSuite, std::string testName, std::string releaseRate, std::string profile) {
-    std::string profile_string = "./memprofile.sh " + testSuite + " " + testName + " " + releaseRate + " " + profile;
-    const char* profile_shell = profile_string.c_str();
-    std::system(profile_shell);
+static void smem(std::string testSuite, std::string testName, std::string releaseRate, std::string profile, std::string drainCheckCycle) {
+    std::string profile_string = "./memprofile.sh " + testSuite + " " + testName + " " + releaseRate + " " + profile + " " + drainCheckCycle;
+    std::system(profile_string.c_str());
 }
 
 static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, int> &currentObjCount, 
@@ -104,7 +103,7 @@ static void deallocateRedis(std::map<size_t, int> numLivesMap, std::map<size_t, 
 }
 
 static void benchRedis(std::vector<bench_profile> profile, std::string testSuite, 
-                  std::string testName, std::string releaseRate, std::string profileName) {
+                  std::string testName, std::string releaseRate, std::string profileName, std::string drainCheckCycle) {
     // initialize
     std::vector<size_t> mallocSize;
     std::vector<int> freq; // the frequency of an malloc size
@@ -119,10 +118,10 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     double deallocateTime = rand() % maxTime + minTime;
 
     // create a log directory
-    std::string folderName = "log/" + profileName;
+    std::string folderName = "log";
     std::filesystem::create_directory(folderName.c_str());
     FILE *logFile;
-    std::string temp = folderName + "/" + testName + "-" + releaseRate + ".txt";
+    std::string temp = folderName + "/" + profileName + "-" + testName + "-" + releaseRate + "-" + drainCheckCycle + ".txt";
     const char* fileName = temp.c_str();;
     logFile = fopen(fileName, "w");
     fprintf(logFile, "Time\t\t\tLog\n");
@@ -172,7 +171,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
         }
     }
     // moving stat file
-    std::string statString = "./redis/stat.sh " + testName + " " + releaseRate + " " + profileName;
+    std::string statString = "./redis/stat.sh " + testName + " " + releaseRate + " " + profileName + " " + drainCheckCycle;
     std::system(statString.c_str());
 
     // kill redis server if neccessary
@@ -9728,16 +9727,17 @@ int main() {
     std::string testSuite = "redis";
     std::string releaseRate = "0MB";
     std::string testName = "SET";
-    std::string profileName = "Bravo";
+    std::string profileName = "Beta";
+    std::string drainCheckCycle = "0s";
 
     
     // system optimization
     std::system("./system_optimization.sh");
 
     // profiler
-    std::thread(smem, testSuite, testName, releaseRate, profileName).detach();
+    std::thread(smem, testSuite, testName, releaseRate, profileName, drainCheckCycle).detach();
 
     // bench
-    benchRedis(Bravo, testSuite, testName, releaseRate, profileName);
+    benchRedis(Beta, testSuite, testName, releaseRate, profileName, drainCheckCycle);
     return 0;
 }

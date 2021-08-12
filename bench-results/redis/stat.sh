@@ -1,6 +1,7 @@
 TEST_NAME=$1
-MEMO=$2
+RELEASERATE=$2
 PROFILE=$3
+DRAINCHECKCYCLE=$4
 
 CURRENT_DIR=$(pwd)
 
@@ -12,12 +13,13 @@ mkdir $PROFILE
 cd $PROFILE
 mkdir $TEST_NAME
 cd $TEST_NAME
-# check if the stat dir for this test had been created, if so we deleted it
-mkdir $MEMO
+mkdir $RELEASERATE
+cd $RELEASERATE
+mkdir $DRAINCHECKCYCLE
 if [ $? -ne 0 ]
 then
-    rm -fr ./$MEMO
-    mkdir $MEMO
+    rm -fr ./$DRAINCHECKCYCLE
+    mkdir $DRAINCHECKCYCLE
 fi
-cd $MEMO
+cd $DRAINCHECKCYCLE
 mv ${REDIS_SRC}/stats/* .
