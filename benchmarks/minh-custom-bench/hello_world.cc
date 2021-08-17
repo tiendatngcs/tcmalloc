@@ -81,9 +81,9 @@ void getStats(std::vector<bench_profile> profile, std::vector<size_t> &sizeVec,
 }
 
 // run the memory profiler
-static void smem(std::string testSuite, std::string releaseRate, std::string profile) {
+static void smem(std::string testSuite, std::string releaseRate, std::string profile, std::string drainCheckCycle) {
     std::string profile_string = "./memprofile.sh " + testSuite + " " + testSuite + " " + releaseRate + " " + profile
-                               + " 1";
+                               + " " + drainCheckCycle;
     const char* profile_shell = profile_string.c_str();
     std::system(profile_shell);
 }
@@ -148,7 +148,7 @@ static void consumer(FILE *log, int threadNum) {
 }
 
 static void myBench(std::vector<bench_profile> profile, std::string testSuite, std::string releaseRate, std::string profileName,
-                    int PRODUCER_NUM, int CONSUMER_NUM) {
+                    std::string drainCheckCycle, int PRODUCER_NUM, int CONSUMER_NUM) {
     // initialize
     std::vector<size_t> mallocSize;
     std::vector<int> freq; // the frequency of an malloc size
@@ -157,10 +157,10 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
     srand(time(NULL)); // seed 
 
     // create a log directory
-    std::string folderName = "log/" + profileName;
-    std::filesystem::create_directory(folderName.c_str());
+    std::string folderName = "log/";
+    std::filesystem::create_directory(folderName);
     FILE *logFile;
-    std::string temp = folderName + "/" + testSuite + "-" + releaseRate + ".txt";
+    std::string temp = folderName + "/" + profileName + "-" + testSuite + "-" + releaseRate + "-" + drainCheckCycle + ".txt";
     const char* fileName = temp.c_str();;
     logFile = fopen(fileName, "w");
     fprintf(logFile, "Time\t\t\tLog\n");
@@ -183,7 +183,7 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
     std::system("killall sh -c /memprofile.sh");
 
     // organize stats
-    std::string stat_string = "./stats.sh Producer-Consumer " + releaseRate + " " + profileName;
+    std::string stat_string = "./stats.sh Producer-Consumer " + releaseRate + " " + profileName + " " + drainCheckCycle;
     std::system(stat_string.c_str());
 
     fclose(logFile);
@@ -9728,6 +9728,7 @@ int main() {
     std::string testSuite = "Producer-Consumer";
     std::string releaseRate = "0MB";
     std::string profileName = "Bravo";
+    std::string drainCheckCycle = "1s";
 
     int PRODUCER_NUM = 1000;
     int CONSUMER_NUM = PRODUCER_NUM;
@@ -9736,9 +9737,9 @@ int main() {
     // std::system("./system_optimization.sh");
 
     // profiler
-    std::thread(smem, testSuite, releaseRate, profileName).detach();
+    std::thread(smem, testSuite, releaseRate, profileName, drainCheckCycle).detach();
 
     // bench
-    myBench(Bravo, testSuite, releaseRate, profileName, PRODUCER_NUM, CONSUMER_NUM);
+    myBench(Bravo, testSuite, releaseRate, profileName, drainCheckCycle, PRODUCER_NUM, CONSUMER_NUM);
     return 0;
 }

@@ -283,22 +283,31 @@ class Driver:
         self.redis_stat_dir = dir + "stats/" + profile_name + "/"
         self.redis_log_dir = dir + "log/"
         self.redis_pic_dir = dir + "pic/" + profile_name + "/"
+
+        try:
+            os.mkdir(dir + "pic/")
+        except FileExistsError:
+            pass
+
         try:
             os.mkdir(self.redis_pic_dir)
         except FileExistsError:
             pass
+
         self.profile_name = profile_name
         self.drain_check_cycle = drain_check_cycle
         self.tests = tests
         self.release_rates = release_rates
         self.deallocate_log = None
+        
+        self.run()
 
-        if test_suite == "redis":
-            self.run_redis()
-        elif test_suite == "mybench":
-            self.run_mybench()
+        # if test_suite == "redis":
+        #     self.run_redis()
+        # elif test_suite == "mybench":
+        #     self.run_mybench()
     
-    def run_redis(self):
+    def run(self):
         for test_name in self.tests:
             for rate in self.release_rates:
                 current_stat_dir = self.redis_stat_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
@@ -313,9 +322,9 @@ class Driver:
                 g.graph_mean_std_timeseries()
 
 Driver(test_suite="redis",
-       tests=["SET"],
+       tests=["Producer-Consumer"],
        release_rates=["0MB"],
-       dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/bench-results/",
-       profile_name="Beta",
-       drain_check_cycle="1s")
+       dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/benchmarks/minh-custom-bench/",
+       profile_name="Bravo",
+       drain_check_cycle="0s")
     

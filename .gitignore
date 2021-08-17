@@ -10,11 +10,17 @@ stats/*
 
 profile/* 
 
-bench-results/stats/*
-bench-results/smem/*
-bench-results/pic/*
-bench-results/log/*
-bench-results/bench_profile
+benchmarks/redis-custom-bench/stats/*
+benchmarks/redis-custom-bench/smem/*
+benchmarks/redis-custom-bench/pic/*
+benchmarks/redis-custom-bench/log/*
+benchmarks/redis-custom-bench/bench_profile
+
+benchmarks/minh-custom-bench/stats/*
+benchmarks/minh-custom-bench/smem/*
+benchmarks/minh-custom-bench/pic/*
+benchmarks/minh-custom-bench/log/*
+benchmarks/minh-custom-bench/bench_profile
 
 mybench/stats/*
 mybench/log/*
