@@ -532,12 +532,17 @@ static void DrainHandler(void *arg, size_t cl, void **batch, size_t count,
   DrainContext *ctx = static_cast<DrainContext *>(arg);
   const size_t size = Static::sizemap().class_to_size(cl);
   const size_t batch_length = Static::sizemap().num_objects_to_move(cl);
+  int32_t obj_size = int32_t (Static::sizemap().class_to_size(cl));
   ctx->bytes += count * size;
   // Drain resets capacity to 0, so return the allocated capacity to that
   // CPU's slack.
   ctx->available->fetch_add(cap * size, std::memory_order_relaxed);
   for (size_t i = 0; i < count; i += batch_length) {
     size_t n = std::min(batch_length, count - i);
+    // Dat mod
+    for (int j = i; j < i + n; j++){
+      Static::huge_pagemap().add_cpu_cache_idle_size(HugePageContaining(batch[j]), -1 * obj_size);
+    }
     Static::transfer_cache().InsertRange(cl, absl::Span<void *>(batch + i, n),
                                          n);
   }

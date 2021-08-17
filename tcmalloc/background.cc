@@ -82,6 +82,32 @@ void ReleasePerCpuMemoryToOS() {
   memcpy(&prev_allowed_cpus, &allowed_cpus, sizeof(cpu_set_t));
 }
 
+void Drain_All_CPU_Caches() {
+  const int num_cpus = absl::base_internal::NumCPUs();
+  if (!MallocExtension::PerCpuCachesActive()) {
+    return;
+  }
+
+  if (subtle::percpu::UsingFlatVirtualCpus()) {
+    // Our (real) CPU mask does not provide useful information about the state
+    // of our virtual CPU set.
+    return;
+  }
+  cpu_set_t allowed_cpus;
+  if (sched_getaffinity(0, sizeof(allowed_cpus), &allowed_cpus)) {
+    // We log periodically as start-up errors are frequently ignored and this is
+    // something we do want clients to fix if they are experiencing it.
+    Log(kLog, __FILE__, __LINE__,
+        "Unexpected sched_getaffinity() failure; errno ", errno);
+    return;
+  }
+  for (int cpu = 0; cpu < num_cpus; cpu++) {
+    if (CPU_ISSET(cpu, &allowed_cpus)){
+      tcmalloc::MallocExtension::ReleaseCpuMemory(cpu);
+    }
+  }
+}
+
 }  // namespace
 }  // namespace tcmalloc_internal
 }  // namespace tcmalloc
@@ -111,45 +137,4 @@ void MallocExtension_Internal_ProcessBackgroundActions() {
     prev_time = now;
     absl::SleepFor(kSleepTime);
   }
-}
-
-void MallocExtension_Internal_Background_ReleaseMemoryToSystem_Only() {
-  tcmalloc::MallocExtension::MarkThreadIdle();
-
-  // Initialize storage for ReleasePerCpuMemoryToOS().
-  // CPU_ZERO(&tcmalloc::tcmalloc_internal::prev_allowed_cpus);
-
-  absl::Time prev_time = absl::Now();
-  constexpr absl::Duration kSleepTime = absl::Seconds(1);
-  while (true) {
-    absl::Time now = absl::Now();
-    const ssize_t bytes_to_release =
-        static_cast<size_t>(tcmalloc::tcmalloc_internal::Parameters::
-                                background_release_rate()) *
-        absl::ToDoubleSeconds(now - prev_time);
-    if (bytes_to_release > 0) {  // may be negative if time goes backwards
-      tcmalloc::MallocExtension::ReleaseMemoryToSystem(bytes_to_release);
-    }
-
-    // tcmalloc::tcmalloc_internal::ReleasePerCpuMemoryToOS();
-
-    prev_time = now;
-    absl::SleepFor(kSleepTime);
-  }
-}
-
-void MallocExtension_Internal_ReleasePerCpuMemoryToOS_Only() {
-  tcmalloc::MallocExtension::MarkThreadIdle();
-
-  // Initialize storage for ReleasePerCpuMemoryToOS().
-  CPU_ZERO(&tcmalloc::tcmalloc_internal::prev_allowed_cpus);
-    // const ssize_t bytes_to_release =
-    //     static_cast<size_t>(tcmalloc::tcmalloc_internal::Parameters::
-    //                             background_release_rate()) *
-    //     absl::ToDoubleSeconds(now - prev_time);
-    // if (bytes_to_release > 0) {  // may be negative if time goes backwards
-    //   tcmalloc::MallocExtension::ReleaseMemoryToSystem(bytes_to_release);
-    // }
-
-  tcmalloc::tcmalloc_internal::ReleasePerCpuMemoryToOS();
 }

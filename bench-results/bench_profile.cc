@@ -9728,7 +9728,7 @@ int main() {
     std::string releaseRate = "0MB";
     std::string testName = "SET";
     std::string profileName = "Beta";
-    std::string drainCheckCycle = "0s";
+    std::string drainCheckCycle = "1s";
 
     
     // system optimization

@@ -164,6 +164,7 @@ class Memory_Stat:
             data.append(int(x) / 1000 for x in line.split()[2:])
 
         self.df = pd.DataFrame(data=data, columns=columns)
+        self.df = self.df.dropna()
         self.df = self.df.astype({"RSS":np.int, "PSS":np.int, "USS":np.int})
         self.plot()
     
@@ -241,7 +242,9 @@ class GraphHugePageStats:
         if self.deallocate_log:
             for coor in self.deallocate_log:
                 plt.axvline(x=coor, c="skyblue", ls='--')
+                pass
         plt.errorbar(x=x, y=means, yerr=stds, ecolor="r")
+        print("Mean of means", np.mean(means))
         plt.xlabel('Time (s)')
         plt.ylabel('Mean of CPU Cache Idle : Live')
         plt.title(self.pic_name)
@@ -261,6 +264,7 @@ class GraphHugePageStats:
         if self.deallocate_log:
             for coor in self.deallocate_log:
                 plt.axvline(x=coor, c="skyblue", ls='--')
+                pass
         plt.plot(x, means,label="mean")
         plt.plot(x, medians,label="median")
         plt.xlabel('Time (s)')
@@ -313,5 +317,5 @@ Driver(test_suite="redis",
        release_rates=["0MB"],
        dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/bench-results/",
        profile_name="Beta",
-       drain_check_cycle="0s")
+       drain_check_cycle="1s")
     

@@ -1167,7 +1167,7 @@ void TcmallocSlab<Shift, NumClasses>::Destroy(void(free)(void*)) {
 template <size_t Shift, size_t NumClasses>
 void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
                                             DrainHandler f) {
-  Log(kLog, __FILE__, __LINE__, "Draining slab");
+  Log(kLog, __FILE__, __LINE__, "Draining slab of cpu", cpu);
   CHECK_CONDITION(cpu >= 0);
   CHECK_CONDITION(cpu < absl::base_internal::NumCPUs());
   const size_t virtual_cpu_id_offset = virtual_cpu_id_offset_;
