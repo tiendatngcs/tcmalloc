@@ -326,5 +326,5 @@ Driver(test_suite="redis",
        release_rates=["0MB"],
        dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/benchmarks/minh-custom-bench/",
        profile_name="Bravo",
-       drain_check_cycle="0s")
+       drain_check_cycle="1s")
     

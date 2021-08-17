@@ -161,7 +161,7 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
     std::filesystem::create_directory(folderName);
     FILE *logFile;
     std::string temp = folderName + "/" + profileName + "-" + testSuite + "-" + releaseRate + "-" + drainCheckCycle + ".txt";
-    const char* fileName = temp.c_str();;
+    const char* fileName = temp.c_str();
     logFile = fopen(fileName, "w");
     fprintf(logFile, "Time\t\t\tLog\n");
     fflush(logFile);

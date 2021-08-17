@@ -1,8 +1,8 @@
 #build tcmalloc
 ../../build.sh
 #build bechmark
-./build_bench.sh
+./build.sh
 #run profile
-./run.sh
+./hello_world
 #run python visualizer
 python3 ../bench_stats.py
