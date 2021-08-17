@@ -72,10 +72,10 @@ void ReleasePerCpuMemoryToOS() {
   // currently safe for Google systems.
   const int num_cpus = absl::base_internal::NumCPUs();
   for (int cpu = 0; cpu < num_cpus; cpu++) {
-    if (CPU_ISSET(cpu, &prev_allowed_cpus) && !CPU_ISSET(cpu, &allowed_cpus)) {
+    // if (CPU_ISSET(cpu, &prev_allowed_cpus) && !CPU_ISSET(cpu, &allowed_cpus)) {
       // This is a CPU present in the old mask, but not the new.  Reclaim.
       MallocExtension::ReleaseCpuMemory(cpu);
-    }
+    // }
   }
 
   // Update cached runnable CPUs for next iteration.
