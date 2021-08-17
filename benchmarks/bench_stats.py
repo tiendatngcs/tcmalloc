@@ -277,12 +277,60 @@ class GraphHugePageStats:
         plt.show()
 
 
+class HugeCache:
+    def __init__(self, DIR, PIC_DIR, profile, test_name):
+        self.DIR = DIR
+        self.PIC_DIR = PIC_DIR
+        self.pic_name = profile
+        self.test_name = test_name
+
+        self.pattern = "HugeCache: \d+ \/\ \d+ hugepages cached \/\ cache limit \(\d+.\d+ hit rate, \d+.\d+ overflow rate\)"
+
+        self.current_hp_in_cache = []
+        self.current_capacity = []
+
+        self.get_data()
+
+    def get_data(self):
+        for filename in natsorted(os.listdir(self.DIR)):
+            if filename.endswith(".txt"): 
+                with open(self.DIR + '/' + filename) as file:
+                    for info in file:
+                        HugeCache = re.search(self.pattern, info)
+                        if HugeCache:
+                            count = 0
+                            for word in HugeCache.group().split(' '):
+                                if word.isdigit():
+                                    if not count:
+                                        self.current_hp_in_cache.append(word)
+                                    elif count == 1:
+                                        self.current_capacity.append(word)
+                                        break
+                                    count += 1
+                            break
+        self.plot()
+
+    def plot(self):
+        plt.plot(self.current_hp_in_cache, label="Available")
+        plt.plot(self.current_capacity, label="Capacity")
+        plt.legend()
+        plt.xlabel("time (s)")
+        plt.ylabel("num(s) page")
+        plt.title("Huge Page Usage in " + self.test_name)
+        plt.legend()
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Usage.png'), dpi = 100)
+        plt.show()
+
+
 class Driver:
     def __init__(self, test_suite, tests, release_rates, dir, profile_name, drain_check_cycle):
-        self.redis_smem_dir = dir + "smem/" + profile_name + "/"
-        self.redis_stat_dir = dir + "stats/" + profile_name + "/"
-        self.redis_log_dir = dir + "log/"
-        self.redis_pic_dir = dir + "pic/" + profile_name + "/"
+        self.smem_dir = dir + "smem/" + profile_name + "/"
+        self.stat_dir = dir + "stats/" + profile_name + "/"
+        self.log_dir = dir + "log/"
+        self.pic_dir = dir + "pic/" + profile_name + "/"
+        self.test_suite = test_suite
 
         try:
             os.mkdir(dir + "pic/")
@@ -290,7 +338,7 @@ class Driver:
             pass
 
         try:
-            os.mkdir(self.redis_pic_dir)
+            os.mkdir(self.pic_dir)
         except FileExistsError:
             pass
 
@@ -301,30 +349,27 @@ class Driver:
         self.deallocate_log = None
         
         self.run()
-
-        # if test_suite == "redis":
-        #     self.run_redis()
-        # elif test_suite == "mybench":
-        #     self.run_mybench()
     
     def run(self):
         for test_name in self.tests:
             for rate in self.release_rates:
-                current_stat_dir = self.redis_stat_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
-                current_smem_dir = self.redis_smem_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
-                deallocate_log = Log(self.redis_log_dir, self.profile_name + "-" + test_name + "-" + rate + "-" + self.drain_check_cycle).get_log()
+                current_stat_dir = self.stat_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
+                current_smem_dir = self.smem_dir + test_name + "/" + rate + "/" + self.drain_check_cycle
+                if self.test_suite == "redis":
+                    self.deallocate_log = Log(self.log_dir, self.profile_name + "-" + test_name + "-" + rate + "-" + self.drain_check_cycle).get_log()
                 pic_name = self.profile_name + "-" + test_name + "-" + rate + "-" + self.drain_check_cycle
-                Benchmark_Stat(current_stat_dir, self.redis_pic_dir, pic_name, deallocate_log)
-                Memory_Stat(current_smem_dir, self.redis_pic_dir, pic_name, deallocate_log)
-                g = GraphHugePageStats(current_stat_dir, self.redis_pic_dir, pic_name, deallocate_log)
-                # g.graph_histogram(3000)
-                g.graph_mean_median_timeseries()
-                g.graph_mean_std_timeseries()
+                HugeCache(current_stat_dir, self.pic_dir, pic_name, self.profile_name)
 
-Driver(test_suite="redis",
+                # Benchmark_Stat(current_stat_dir, self.redis_pic_dir, pic_name, self.deallocate_log)
+                # Memory_Stat(current_smem_dir, self.redis_pic_dir, pic_name, self.deallocate_log)
+                # g = GraphHugePageStats(current_stat_dir, self.redis_pic_dir, pic_name, self.deallocate_log)
+                # g.graph_mean_median_timeseries()
+                # g.graph_mean_std_timeseries()
+
+Driver(test_suite="mybench",
        tests=["Producer-Consumer"],
        release_rates=["0MB"],
-       dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/benchmarks/minh-custom-bench/",
+       dir="/home/minh/Desktop/tcmalloc/benchmarks/minh-custom-bench/",
        profile_name="Bravo",
        drain_check_cycle="1s")
     
