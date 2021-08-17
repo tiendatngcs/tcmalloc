@@ -371,5 +371,5 @@ Driver(test_suite="mybench",
        release_rates=["0MB"],
        dir="/home/minh/Desktop/tcmalloc/benchmarks/minh-custom-bench/",
        profile_name="Bravo",
-       drain_check_cycle="0s")
+       drain_check_cycle="1s")
     
