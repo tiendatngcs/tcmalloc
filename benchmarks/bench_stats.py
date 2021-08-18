@@ -46,95 +46,6 @@ class Log:
         return sorted(self.deallocate_time)
 
 
-class Benchmark_Stat:
-    def __init__(self, DIR, PIC_DIR, test_name, deallocate_log=None):
-        self.DIR = DIR
-        self.PIC_DIR = PIC_DIR
-        self.test_name = test_name
-
-        self.pattern1 = "Total(\s*)\d+ Hugepage\(s\) stranded in all cpu caches."
-        self.pattern2 = "HugeAllocator: \d+ requested - \d+ in use = \d+ hugepages free"
-
-        self.totalStrandedPage = []
-        self.totalHugePageRequested = []
-        self.totalHugePageInUse = []
-        self.totalHugePageFree = []
-        self.percentage = []
-        
-        self.deallocate_log = deallocate_log
-
-        self.get_data()
-        self.get_stranded_percentage()
-
-    def get_data(self):
-        for filename in natsorted(os.listdir(self.DIR)):
-            if filename.endswith(".txt"): 
-                with open(self.DIR + '/' + filename) as file:
-                    for info in file:
-                        strandedPage = re.search(self.pattern1, info)
-                        if strandedPage:
-                            for word in strandedPage.group().split(' '):
-                                if word.isdigit():
-                                    self.totalStrandedPage.append(int(word))
-                                    break
-                        hugePage = re.search(self.pattern2, info)
-                        if hugePage:
-                            for index, word in enumerate(hugePage.group().split(' ')):
-                                if word.isdigit():
-                                    if index == 1:
-                                        self.totalHugePageRequested.append(int(word))
-                                    if index == 4:
-                                        self.totalHugePageInUse.append(int(word))
-                                    elif index == 8:
-                                        self.totalHugePageFree.append(int(word))
-                            break
-        self.plot()
-    
-    def get_stranded_percentage(self):
-        if len(self.totalStrandedPage):
-            for i in range(len(self.totalHugePageRequested)):
-                self.percentage.append(self.totalStrandedPage[i] / self.totalHugePageRequested[i] * 100)
-            self.plot_percentage()
-        else:
-            print("0 stranded page")
-
-    def plot(self):
-        plt.plot(self.totalStrandedPage, label="Stranded Page")
-        plt.plot(self.totalHugePageRequested, label="Requested")
-        plt.plot(self.totalHugePageInUse, label="In Use")
-        plt.plot(self.totalHugePageFree, label="Free")
-        plt.legend()
-        plt.xlabel("time (s)")
-        plt.ylabel("num(s) page")
-        plt.title("Huge Page Usage in " + self.test_name)
-        if self.deallocate_log:
-            for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="skyblue", ls='--')
-        plt.legend()
-        fig = plt.gcf()
-        fig.set_size_inches(18.5, 10.5)
-        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Usage.png'), dpi = 100)
-        plt.show()
-    
-    def plot_percentage(self):
-        textstr = '\n'.join((f"Max Requested HP {max(self.totalHugePageRequested)}",
-                            f"Min Requested HP {min(self.totalHugePageRequested)}",
-                            f"Max Stranded {max(self.totalStrandedPage)}",
-                            f"Min Stranded {min(self.totalStrandedPage)}"))
-        plt.plot(self.percentage, label="Percentage")
-        plt.xlabel("time (s)")
-        plt.ylabel("%")
-        plt.title("% Huge Page Stranded in " + self.test_name)
-        if self.deallocate_log:
-            for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="skyblue", ls='--')
-        plt.legend()
-        fig = plt.gcf()
-        fig.set_size_inches(18.5, 10.5)
-        fig.text(0.8, 0.9, textstr, fontsize = 12, bbox = dict(facecolor = 'white', alpha = 0.5))
-        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Stranded.png'), dpi = 100)
-        plt.show()
-
 
 class Memory_Stat:
     def __init__(self, DIR, PIC_DIR, test_name, deallocate_log=None):
@@ -188,24 +99,36 @@ class Memory_Stat:
 
 
 class GraphHugePageStats:
-    def __init__(self, dir, PIC_DIR, profile, log):
+    def __init__(self, bench_directory, test_suite, test, release_rates, profile, drain_check_cycle):
         self.dict_list = None
-        self.read_files(dir)
-        self.deallocate_log = log
-        self.PIC_DIR = PIC_DIR
+        self.read_files(os.path.join(bench_directory, "stats_storage", profile_name, test, release_rates, drain_check_cycle))
+        # self.deallocate_log = log
+        self.PIC_DIR = os.path.join(bench_directory, "pic")
         self.pic_name = profile
+        self.test_name = test
 
-    def read_files(self, dir):
+    def read_files(self, stats_directory):
+        print(stats_directory)
         dict_list = list()
-        file_list = [os.path.join(dir, f) for f in os.listdir(dir)]
+        totalStrandedPage = list()
+        totalHugePageRequested = list()
+        totalHugePageInUse = list()
+        totalHugePageFree = list()
+        percentage = list()
+
+        file_list = [os.path.join(stats_directory, f) for f in os.listdir(stats_directory)]
+        # print(file_list)
         file_list.sort()
         file_list.sort(key=len)
+        # Process files
         for file in file_list:
             hp_dict = dict()
             f = open(file, "r")
             read = f.read()
-            pattern = "HugePage at addr .+\n\tLive size:\s*\d+\sbytes\n\tCPU Cache Idle size:\s*\d+\sbytes\n\tCentral Cache Idle size:\s*\d+\sbytes\n\tFree size:\s*\d+\sbytes"
-            hp_text_list = re.findall(pattern, read)
+
+            # Process per-hugepage stats
+            per_hugepage_pattern = "HugePage at addr .+\n\tLive size:\s*\d+\sbytes\n\tCPU Cache Idle size:\s*\d+\sbytes\n\tCentral Cache Idle size:\s*\d+\sbytes\n\tFree size:\s*\d+\sbytes"
+            hp_text_list = re.findall(per_hugepage_pattern, read)
             for hp_text in hp_text_list:
                 hp_text_lines = hp_text.split("\n")
                 addr = hp_text_lines[0].split()[-1]
@@ -215,7 +138,35 @@ class GraphHugePageStats:
                 if live != 0 or cpu_cache_idle != 0:
                     hp_dict[addr] = (live, cpu_cache_idle)
             dict_list.append(hp_dict)
+
+            # Process stranded page stats
+            num_hp_stranded_pattern = "Total\s*\d+ Hugepage\(s\) stranded in all cpu caches."
+            text = re.findall(num_hp_stranded_pattern, read)[0]
+            print(text)
+            num_stranded_page = int(text.split()[1])
+            totalStrandedPage.append(num_stranded_page)
+
+            hp_usage_pattern = "HugeAllocator: \d+ requested - \d+ in use = \d+ hugepages free"
+            text = re.findall(hp_usage_pattern, read)[0]
+            print(text)
+            num_requested_page = int(text.split()[1])
+            num_inuse_page = int(text.split()[4])
+            num_free_page = int(text.split()[8])
+
+            totalHugePageRequested.append(num_requested_page)
+            totalHugePageInUse.append(num_inuse_page)
+            totalHugePageFree.append(num_free_page)
+
+            percentage.append(num_stranded_page / num_requested_page * 100)
+
+
+
         self.dict_list = dict_list
+        self.totalStrandedPage = totalStrandedPage
+        self.totalHugePageRequested = totalHugePageRequested
+        self.totalHugePageInUse = totalHugePageInUse
+        self.totalHugePageFree = totalHugePageFree
+        self.percentage = percentage
     
     def graph_histogram(self, timestamp=0):
         uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in self.dict_list[timestamp].values() if (cpu+1)/(live+1) != 0]
@@ -239,10 +190,10 @@ class GraphHugePageStats:
             uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in hp_dict.values()]
             means.append(np.mean(uselessness_list))
             stds.append(np.std(uselessness_list))
-        if self.deallocate_log:
-            for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="skyblue", ls='--')
-                pass
+        # if self.deallocate_log:
+        #     for coor in self.deallocate_log:
+        #         plt.axvline(x=coor, c="skyblue", ls='--')
+        #         pass
         plt.errorbar(x=x, y=means, yerr=stds, ecolor="r")
         print("Mean of means", np.mean(means))
         plt.xlabel('Time (s)')
@@ -261,10 +212,10 @@ class GraphHugePageStats:
             uselessness_list = [(cpu+1)/(live+1) for (live, cpu) in hp_dict.values()]
             means.append(np.mean(uselessness_list))
             medians.append(np.median(uselessness_list))
-        if self.deallocate_log:
-            for coor in self.deallocate_log:
-                plt.axvline(x=coor, c="skyblue", ls='--')
-                pass
+        # if self.deallocate_log:
+        #     for coor in self.deallocate_log:
+        #         plt.axvline(x=coor, c="skyblue", ls='--')
+        #         pass
         plt.plot(x, means,label="mean")
         plt.plot(x, medians,label="median")
         plt.xlabel('Time (s)')
@@ -274,6 +225,39 @@ class GraphHugePageStats:
         fig = plt.gcf()
         fig.set_size_inches(18.5, 10.5)
         fig.savefig(os.path.join(self.PIC_DIR, self.pic_name  + '-Mean Median CPU Cache Idle.png'), dpi = 100)
+        plt.show()
+
+    def plot_stranded_percentage(self):
+        textstr = '\n'.join((f"Max Requested HP {max(self.totalHugePageRequested)}",
+                            f"Min Requested HP {min(self.totalHugePageRequested)}",
+                            f"Max Stranded {max(self.totalStrandedPage)}",
+                            f"Min Stranded {min(self.totalStrandedPage)}"))
+        plt.plot(self.percentage, label="Percentage")
+        plt.xlabel("time (s)")
+        plt.ylabel("%")
+        plt.title("% Huge Page Stranded in " + self.test_name)
+
+        plt.legend()
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.text(0.8, 0.9, textstr, fontsize = 12, bbox = dict(facecolor = 'white', alpha = 0.5))
+        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Stranded.png'), dpi = 100)
+        plt.show()
+
+    def plot_hugepage_usage(self):
+        plt.plot(self.totalStrandedPage, label="Stranded Page")
+        plt.plot(self.totalHugePageRequested, label="Requested")
+        plt.plot(self.totalHugePageInUse, label="In Use")
+        plt.plot(self.totalHugePageFree, label="Free")
+        plt.legend()
+        plt.xlabel("time (s)")
+        plt.ylabel("num(s) page")
+        plt.title("Huge Page Usage in " + self.test_name)
+        
+        plt.legend()
+        fig = plt.gcf()
+        fig.set_size_inches(18.5, 10.5)
+        fig.savefig(os.path.join(self.PIC_DIR, self.test_name + '-HP-Usage.png'), dpi = 100)
         plt.show()
 
 
@@ -327,7 +311,7 @@ class HugeCache:
 class Driver:
     def __init__(self, test_suite, tests, release_rates, dir, profile_name, drain_check_cycle):
         self.smem_dir = dir + "smem/" + profile_name + "/"
-        self.stat_dir = dir + "stats/" + profile_name + "/"
+        self.stat_dir = dir + "stats_storage/" + profile_name + "/"
         self.log_dir = dir + "log/"
         self.pic_dir = dir + "pic/" + profile_name + "/"
         self.test_suite = test_suite
@@ -369,7 +353,7 @@ class Driver:
 Driver(test_suite="mybench",
        tests=["Producer-Consumer"],
        release_rates=["0MB"],
-       dir="/home/minh/Desktop/tcmalloc/benchmarks/minh-custom-bench/",
+       dir="/home/grads/t/tiendat.ng.cs/Documents/github_repos/tcmalloc/benchmarks/minh-custom-bench/",
        profile_name="Bravo",
        drain_check_cycle="1s")
     

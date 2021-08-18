@@ -5,4 +5,4 @@
 #run profile
 ./hello_world
 #run python visualizer
-python3 ../bench_stats.py
+# python3 ../bench_stats.py

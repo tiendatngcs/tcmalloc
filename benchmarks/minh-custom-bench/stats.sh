@@ -7,8 +7,8 @@ CURRENT_DIR=$(pwd)
 
 echo "moving stat files"
 cd $CURRENT_DIR
-mkdir stats
-cd stats
+mkdir stats_storage
+cd stats_storage
 mkdir $PROFILE
 cd $PROFILE
 mkdir $TEST_NAME
@@ -22,4 +22,4 @@ then
     mkdir $DRAINCHECKCYCLE
 fi
 cd $DRAINCHECKCYCLE
-mv ${REDIS_SRC}/stats/* .
+mv $CURRENT_DIR/stats/stat* .

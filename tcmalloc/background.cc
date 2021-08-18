@@ -72,18 +72,25 @@ void ReleasePerCpuMemoryToOS() {
   // currently safe for Google systems.
   const int num_cpus = absl::base_internal::NumCPUs();
   for (int cpu = 0; cpu < num_cpus; cpu++) {
-    // if (CPU_ISSET(cpu, &prev_allowed_cpus) && !CPU_ISSET(cpu, &allowed_cpus)) {
+    if (CPU_ISSET(cpu, &prev_allowed_cpus) && !CPU_ISSET(cpu, &allowed_cpus)) {
       // This is a CPU present in the old mask, but not the new.  Reclaim.
       MallocExtension::ReleaseCpuMemory(cpu);
-    // }
+    }
   }
 
   // Update cached runnable CPUs for next iteration.
   memcpy(&prev_allowed_cpus, &allowed_cpus, sizeof(cpu_set_t));
 }
 
-void Drain_All_CPU_Caches() {
-  const int num_cpus = absl::base_internal::NumCPUs();
+void ReleaseLivePerCpuMemoryToOS() {
+  cpu_set_t allowed_cpus;
+
+  // Only attempt reclaim when per-CPU caches are in use.  While
+  // ReleaseCpuMemory() itself is usually a no-op otherwise, we are experiencing
+  // failures in non-permissive sandboxes due to calls made to
+  // sched_getaffinity() below.  It is expected that a runtime environment
+  // supporting per-CPU allocations supports sched_getaffinity().
+  // See b/27247854.
   if (!MallocExtension::PerCpuCachesActive()) {
     return;
   }
@@ -93,7 +100,8 @@ void Drain_All_CPU_Caches() {
     // of our virtual CPU set.
     return;
   }
-  cpu_set_t allowed_cpus;
+
+  // This can only fail due to a sandbox or similar intercepting the syscall.
   if (sched_getaffinity(0, sizeof(allowed_cpus), &allowed_cpus)) {
     // We log periodically as start-up errors are frequently ignored and this is
     // something we do want clients to fix if they are experiencing it.
@@ -101,11 +109,21 @@ void Drain_All_CPU_Caches() {
         "Unexpected sched_getaffinity() failure; errno ", errno);
     return;
   }
+
+  // Note:  This is technically not correct in the presence of hotplug (it is
+  // not guaranteed that NumCPUs() is an upper bound on CPU-number).  It is
+  // currently safe for Google systems.
+  const int num_cpus = absl::base_internal::NumCPUs();
   for (int cpu = 0; cpu < num_cpus; cpu++) {
-    if (CPU_ISSET(cpu, &allowed_cpus)){
-      tcmalloc::MallocExtension::ReleaseCpuMemory(cpu);
-    }
+    // if (!CPU_ISSET(cpu, &prev_allowed_cpus) && CPU_ISSET(cpu, &allowed_cpus)) {
+      // This is a CPU present in the old mask, but not the new.  Reclaim.
+    Log(kLog, __FILE__, __LINE__, "Releasing CPU ..", cpu);
+      MallocExtension::ReleaseCpuMemory(cpu);
+    // }
   }
+
+  // Update cached runnable CPUs for next iteration.
+  memcpy(&prev_allowed_cpus, &allowed_cpus, sizeof(cpu_set_t));
 }
 
 }  // namespace
@@ -137,4 +155,9 @@ void MallocExtension_Internal_ProcessBackgroundActions() {
     prev_time = now;
     absl::SleepFor(kSleepTime);
   }
+}
+
+void MallocExtension_Internal_Cpu_Cache_Release() {
+  // tcmalloc::MallocExtension::MarkThreadIdle();
+    tcmalloc::tcmalloc_internal::ReleaseLivePerCpuMemoryToOS();
 }
