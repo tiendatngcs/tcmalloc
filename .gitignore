@@ -20,6 +20,8 @@ benchmarks/minh-custom-bench/stats/*
 benchmarks/minh-custom-bench/smem/*
 benchmarks/minh-custom-bench/pic/*
 benchmarks/minh-custom-bench/log/*
+benchmarks/minh-custom-bench/./hello_world
+benchmarks/minh-custom-bench/*.o
 benchmarks/minh-custom-bench/bench_profile
 
 mybench/stats/*
