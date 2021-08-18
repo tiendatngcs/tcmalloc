@@ -11,12 +11,14 @@ stats/*
 profile/* 
 
 benchmarks/redis-custom-bench/stats/*
+benchmarks/redis-custom-bench/stats_storage/*
 benchmarks/redis-custom-bench/smem/*
 benchmarks/redis-custom-bench/pic/*
 benchmarks/redis-custom-bench/log/*
 benchmarks/redis-custom-bench/bench_profile
 
 benchmarks/minh-custom-bench/stats/*
+benchmarks/minh-custom-bench/stats_storage/*
 benchmarks/minh-custom-bench/smem/*
 benchmarks/minh-custom-bench/pic/*
 benchmarks/minh-custom-bench/log/*

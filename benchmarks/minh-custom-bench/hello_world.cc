@@ -19,7 +19,7 @@
 // ---------------
 std::queue<char*> sharedQueue;
 std::mutex mutexLock;
-int LOOP_COUNT_PRODUCER = 500;  // how many times a thread will allocate
+int LOOP_COUNT_PRODUCER = 450;  // how many times a thread will allocate
 int PRODUCER_MIN_TIME = 1;      // the minimum sleep time of a producer thread
 int PRODUCER_MAX_TIME = 10;     // the maxinmum sleep time of a producer thread
 
@@ -157,7 +157,7 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
     srand(time(NULL)); // seed 
 
     // create a log directory
-    std::string folderName = "log/";
+    std::string folderName = "log";
     std::filesystem::create_directory(folderName);
     FILE *logFile;
     std::string temp = folderName + "/" + profileName + "-" + testSuite + "-" + releaseRate + "-" + drainCheckCycle + ".txt";
@@ -177,7 +177,7 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
     for (auto & t : threads) 
         t.join();
 
-    showq(sharedQueue);
+    // showq(sharedQueue);
 
     // kill profiler
     std::system("killall sh -c /memprofile.sh");
@@ -9726,8 +9726,8 @@ int main() {
 
     // initialize
     std::string testSuite = "Producer-Consumer";
-    std::string releaseRate = "0MB";
-    std::string profileName = "Bravo";
+    std::string releaseRate = "1MB";
+    std::string profileName = "Beta";
     std::string drainCheckCycle = "1s";
 
     int PRODUCER_NUM = 1000;
@@ -9740,6 +9740,6 @@ int main() {
     std::thread(smem, testSuite, releaseRate, profileName, drainCheckCycle).detach();
 
     // bench
-    myBench(Bravo, testSuite, releaseRate, profileName, drainCheckCycle, PRODUCER_NUM, CONSUMER_NUM);
+    myBench(Beta, testSuite, releaseRate, profileName, drainCheckCycle, PRODUCER_NUM, CONSUMER_NUM);
     return 0;
 }
