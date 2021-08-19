@@ -2410,7 +2410,7 @@ class BackgroundWorker{
         if(strcmp(__progname, x) == 0) {
           std::thread(write_stats_to_file).detach();
           std::thread(background_subrelease).detach();
-          std::thread(background_drain_cpu, /*drainCheckCycle =*/1).detach();
+          std::thread(background_drain_cpu, /*drainCheckCycle =*/5).detach();
           break;
         }
       }

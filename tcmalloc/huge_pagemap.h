@@ -264,6 +264,13 @@ class HugePageMap {
             return root_[i1]->huge_page_stats[i2]->GetFreeSize();
         }
 
+        double get_hp_idle_percentage(HugePage hp) {
+            int32_t cpu_cache_idle_size = get_cpu_cache_idle_size(hp);
+            int32_t live_size = get_live_size(hp);
+            if (live_size + cpu_cache_idle_size == 0) return 0;
+            return double (cpu_cache_idle_size) / (live_size + cpu_cache_idle_size);
+        }
+
         void PrintStats(Printer *out){
             // uintptr_t hp_addr;
             absl::base_internal::SpinLockHolder h(&lock_);
@@ -310,6 +317,22 @@ class HugePageMap {
                 }
             }
             return total_dou / count;
+        }
+
+        bool existing_a_hp_breach_idle_percentage_threshold(double THRESHOLD) {
+            HugePage hp;
+            int count = 0;
+            for (uintptr_t i1 = 0; i1 < rootLength; i1++) {
+                if (root_[i1] != nullptr) {
+                    for (uintptr_t i2 = 0; i2 < leafLength; i2++) {
+                        if (root_[i1]->huge_page_stats[i2] != nullptr) {
+                            hp = get_hp(i1, i2);
+                            if (get_hp_idle_percentage(hp) >= THRESHOLD) return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 };
 }  // namespace tcmalloc_internal
