@@ -19,13 +19,15 @@
 // ---------------
 std::queue<char*> sharedQueue;
 std::mutex mutexLock;
-int LOOP_COUNT_PRODUCER = 450;  // how many times a thread will allocate
+int PHASE_NUM = 5;
+int LOOP_COUNT_PRODUCER = 100;  // how many times a thread will allocate
 int PRODUCER_MIN_TIME = 1;      // the minimum sleep time of a producer thread
-int PRODUCER_MAX_TIME = 10;     // the maxinmum sleep time of a producer thread
+int PRODUCER_MAX_TIME_UP_PHASE = 5;     // the maxinmum sleep time of a producer thread
+int PRODUCER_MAX_TIME_DOWN_PHASE = PRODUCER_MAX_TIME_UP_PHASE * 5;     // the maxinmum sleep time of a producer thread
 
 int LOOP_COUNT_CONSUMER = LOOP_COUNT_PRODUCER - 10; // how many times a thread will deallocate
 int CONSUMER_MIN_TIME = PRODUCER_MIN_TIME + 1;      // the minimum sleep time of a consumer thread
-int CONSUMER_MAX_TIME = PRODUCER_MAX_TIME + 1;     // the maxinmum sleep time of a consumer thread
+int CONSUMER_MAX_TIME = PRODUCER_MAX_TIME_UP_PHASE * 2;     // the maxinmum sleep time of a consumer thread
 
 struct bench_profile {
     // The units here actually don't matter so long as they're consistent
@@ -97,9 +99,16 @@ void showq(std::queue<char*> gq) {
     }
 }
 
-static void producer(FILE *log, std::vector<size_t> sizeVec, std::vector<int> freqVec, int threadNum) {
+static void producer(FILE *log, std::vector<size_t> sizeVec, std::vector<int> freqVec, bool is_up_phase, int threadNum) {
     // producer sleep time
-    int sleepTime = rand() % PRODUCER_MAX_TIME + PRODUCER_MIN_TIME;
+    int sleepTime;
+
+    if (is_up_phase){
+        sleepTime = rand() % PRODUCER_MAX_TIME_UP_PHASE + PRODUCER_MIN_TIME;
+    }
+    else{
+        sleepTime = rand() % PRODUCER_MAX_TIME_DOWN_PHASE + PRODUCER_MIN_TIME;
+    }
 
     int n = sizeVec.size();
     char* ptr;
@@ -129,8 +138,8 @@ static void consumer(FILE *log, int threadNum) {
     int sleepTime = rand() % CONSUMER_MAX_TIME + CONSUMER_MIN_TIME;
 
     for (int round = 0; round < LOOP_COUNT_CONSUMER; round++) {
+        mutexLock.lock();
         if(!sharedQueue.empty()) {
-            mutexLock.lock();
             // get the pointer from the shared queue
             char* ptr = sharedQueue.front();
             sharedQueue.pop();
@@ -141,8 +150,8 @@ static void consumer(FILE *log, int threadNum) {
             fprintf(log, "%02d:%02d:%02d\t\tRound %d: Thread %d deallocated pointer %p\n", 
                     tm_t->tm_hour, tm_t->tm_min, tm_t->tm_sec, round, threadNum, ptr);
             fflush(log);
-            mutexLock.unlock();
         }
+        mutexLock.unlock();
         sleep(sleepTime);
     }
 }
@@ -166,16 +175,24 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
     fprintf(logFile, "Time\t\t\tLog\n");
     fflush(logFile);
 
-    // spawn producer and consumer threads
-    std::vector<std::thread> threads;
-    for (int i = 0; i < PRODUCER_NUM; ++i)
-        threads.push_back(std::thread(producer, logFile, mallocSize, freq, i));
+    bool is_up_phase = true;
 
-    for (int i = 0; i < CONSUMER_NUM; ++i)
-        threads.push_back(std::thread(consumer, logFile, i));
-    
-    for (auto & t : threads) 
-        t.join();
+    for (int i = 0 ; i < PHASE_NUM; i++){
+        // spawn producer and consumer threads
+        std::vector<std::thread> threads;
+        for (int i = 0; i < PRODUCER_NUM; ++i)
+            threads.push_back(std::thread(producer, logFile, mallocSize, freq, is_up_phase, i));
+
+        for (int i = 0; i < CONSUMER_NUM; ++i)
+            threads.push_back(std::thread(consumer, logFile, i));
+        
+        for (auto & t : threads) 
+            t.join();
+
+        threads.clear();
+        is_up_phase = !is_up_phase;
+    }
+
 
     // showq(sharedQueue);
 
@@ -9726,9 +9743,9 @@ int main() {
 
     // initialize
     std::string testSuite = "Producer-Consumer";
-    std::string releaseRate = "1MB";
+    std::string releaseRate = "0MB";
     std::string profileName = "Beta";
-    std::string drainCheckCycle = "1s";
+    std::string drainCheckCycle = "5s";
 
     int PRODUCER_NUM = 1000;
     int CONSUMER_NUM = PRODUCER_NUM;

@@ -1221,6 +1221,12 @@ void TcmallocSlab<Shift, NumClasses>::Drain(int cpu, void* ctx,
     size_t cap = hdr.end_copy - begin[cl];
     void** batch = reinterpret_cast<void**>(GetHeader(cpu, 0) + begin[cl]);
     f(ctx, cl, batch, n, cap);
+    // Dat mod
+    //we overwrite everything in the slab
+    // for(uint16_t idx = begin[cl]; idx <= begin[cl] + n; idx++) {
+    //   slabs_->mem[idx] = nullptr;
+    // }
+    // Dat mod
   }
 
   // Phase 4: reset current to beginning of the region.

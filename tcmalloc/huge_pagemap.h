@@ -334,6 +334,22 @@ class HugePageMap {
             }
             return false;
         }
+
+        bool existing_a_hp_with_zero_live() {
+            HugePage hp;
+            int count = 0;
+            for (uintptr_t i1 = 0; i1 < rootLength; i1++) {
+                if (root_[i1] != nullptr) {
+                    for (uintptr_t i2 = 0; i2 < leafLength; i2++) {
+                        if (root_[i1]->huge_page_stats[i2] != nullptr) {
+                            hp = get_hp(i1, i2);
+                            if (get_live_size(hp) == 0 && get_cpu_cache_idle_size(hp) != 0) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
 };
 }  // namespace tcmalloc_internal
 }  // namespace tcmalloc

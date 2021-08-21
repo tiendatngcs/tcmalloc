@@ -2385,20 +2385,20 @@ class BackgroundWorker{
 
     static void background_subrelease(){
       tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Background release thread started");
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{1 << 20});
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
 
     static void background_drain_cpu(int drainCheckCycle) {
-      double THRESHOLD = 500;
+      double THRESHOLD = 0.1;
       // we don't drain when drainCheckCycle == 0
       if (drainCheckCycle != 0){
         while(true) {
-          double mean_dou = Static::huge_pagemap().get_mean_degree_of_uselessness();
-          if(mean_dou >= THRESHOLD) {
+          sleep(drainCheckCycle);
+          // double mean_dou = Static::huge_pagemap().get_mean_degree_of_uselessness();
+          if(Static::huge_pagemap().existing_a_hp_with_zero_live()) {
             MallocExtension_Internal_Cpu_Cache_Release();
           }
-          sleep(drainCheckCycle);
         }
       }
     }
