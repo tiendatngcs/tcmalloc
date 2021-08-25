@@ -9735,11 +9735,11 @@ int main(int argc, char** argv) {
 
     // redis test
     // "redis" "0MB" "SET" "Beta" "0s"
-    std::string testSuite = argv[0];
-    std::string releaseRate = argv[1];
-    std::string testName = argv[2];
-    std::string profileName = argv[3];
-    std::string drainCheckCycle = argv[4];
+    std::string testSuite = argv[1];
+    std::string releaseRate = argv[2];
+    std::string testName = argv[3];
+    std::string profileName = argv[4];
+    std::string drainCheckCycle = argv[5];
 
     
     // system optimization
