@@ -9728,6 +9728,11 @@ int main(int argc, char** argv) {
     // 1: benchmark                 4: profile name
     // 2: release rate              5: drain cycle
 
+    if (argc < 2) {
+        printf("Missing arguments!\n");
+        return 1;
+    }
+
     // redis test
     // "redis" "0MB" "SET" "Beta" "0s"
     std::string testSuite = argv[0];

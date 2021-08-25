@@ -113,7 +113,7 @@ static void producer(FILE *log, std::vector<size_t> sizeVec, std::vector<int> fr
     int n = sizeVec.size();
     char* ptr;
     for (int round = 0; round < LOOP_COUNT_PRODUCER; round++) {
-        mutexLock.lock();
+        // mutexLock.lock();
         // generate random class size and populate redis
         size_t sizeMalloc = myRand(sizeVec, freqVec, n);
 
@@ -122,7 +122,7 @@ static void producer(FILE *log, std::vector<size_t> sizeVec, std::vector<int> fr
         // strcpy(ptr,"abc");
         // printf("%p %s\n", ptr, (void *) ptr);
         sharedQueue.push(ptr);
-        mutexLock.unlock();
+        // mutexLock.unlock();
 
         time_t now = time(NULL);
         tm* tm_t = localtime(&now);
@@ -9741,6 +9741,12 @@ int main(int argc, char** argv) {
         {15922538564, 3.7295341811807706e-06, 3.7262683285823413e-05},
     };
 
+
+    if (argc < 2) {
+        printf("Missing arguments!\n");
+        return 1;
+    }
+    
     // args:
     // 0: program name              3: profile name
     // 1: benchmark                 4: drain cycle
