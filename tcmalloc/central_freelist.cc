@@ -135,7 +135,6 @@ void CentralFreeList::InsertRange(void** batch, int N) {
           1, 3);
 #endif  // TCMALLOC_SMALL_BUT_SLOW
     }
-
     const MemoryTag tag = MemoryTagFromSizeClass(size_class_);
     absl::base_internal::SpinLockHolder h(&pageheap_lock);
     for (int i = 0; i < free_count; ++i) {

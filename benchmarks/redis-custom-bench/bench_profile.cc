@@ -186,7 +186,7 @@ static void benchRedis(std::vector<bench_profile> profile, std::string testSuite
     fclose(logFile);
 }
 
-int main() {
+int main(int argc, char** argv) {
     std::vector<bench_profile> Beta = {
         {1, 1105.1490179533014, 1476.0622627267278},
         {2, 157.89933938068327, 291.72053371223052},
@@ -9723,12 +9723,18 @@ int main() {
     // build redis
     std::system("./build_redis.sh");
 
+    // args:
+    // 0: program name              3: test name
+    // 1: benchmark                 4: profile name
+    // 2: release rate              5: drain cycle
+
     // redis test
-    std::string testSuite = "redis";
-    std::string releaseRate = "0MB";
-    std::string testName = "SET";
-    std::string profileName = "Beta";
-    std::string drainCheckCycle = "0s";
+    // "redis" "0MB" "SET" "Beta" "0s"
+    std::string testSuite = argv[0];
+    std::string releaseRate = argv[1];
+    std::string testName = argv[2];
+    std::string profileName = argv[3];
+    std::string drainCheckCycle = argv[4];
 
     
     // system optimization
