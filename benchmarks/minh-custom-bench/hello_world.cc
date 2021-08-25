@@ -9743,9 +9743,9 @@ int main() {
 
     // initialize
     std::string testSuite = "Producer-Consumer";
-    std::string releaseRate = "0MB";
+    std::string releaseRate = "1MB";
     std::string profileName = "Beta";
-    std::string drainCheckCycle = "5s";
+    std::string drainCheckCycle = "0s";
 
     int PRODUCER_NUM = 1000;
     int CONSUMER_NUM = PRODUCER_NUM;

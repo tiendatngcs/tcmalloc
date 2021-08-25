@@ -2385,7 +2385,7 @@ class BackgroundWorker{
 
     static void background_subrelease(){
       tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Background release thread started");
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{0});
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{1 << 20});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
 
@@ -2410,7 +2410,7 @@ class BackgroundWorker{
         if(strcmp(__progname, x) == 0) {
           std::thread(write_stats_to_file).detach();
           std::thread(background_subrelease).detach();
-          std::thread(background_drain_cpu, /*drainCheckCycle =*/5).detach();
+          std::thread(background_drain_cpu, /*drainCheckCycle =*/0).detach();
           break;
         }
       }

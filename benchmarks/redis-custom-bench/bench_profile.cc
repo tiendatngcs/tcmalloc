@@ -9725,7 +9725,7 @@ int main() {
 
     // redis test
     std::string testSuite = "redis";
-    std::string releaseRate = "0MB";
+    std::string releaseRate = "1MB";
     std::string testName = "SET";
     std::string profileName = "Beta";
     std::string drainCheckCycle = "0s";
