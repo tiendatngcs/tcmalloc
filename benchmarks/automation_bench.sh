@@ -6,8 +6,16 @@ PROFILE_NAME=("Beta" "Bravo" "Charlie" "Delta" "Echo" "Foxtrot" "Merced" "Sierra
 DRAIN_CYCLE=("0s" "5s")
 CURRENT_DIR=$(pwd)
 
+# build tcmalloc
+echo echo -n "Building TCMalloc..."
+cd $TCMALLOC_SRC
+./build.sh
+echo "Done"
+
+
 # update redis bench
 echo -n "Building Redis bench..."
+cd $CURRENT_DIR
 cd redis-custom-bench/
 ./build_bench.sh
 REDIS_BENCH_DIR=$(pwd)

@@ -2383,9 +2383,9 @@ class BackgroundWorker{
       }
     }
 
-    static void background_subrelease(){
+    static void background_subrelease(size_t release_rate_in_MB){
       tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Background release thread started");
-      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{1 << 20});
+      MallocExtension_Internal_SetBackgroundReleaseRate(tcmalloc::MallocExtension::BytesPerSecond{release_rate_in_MB << 20});
       MallocExtension_Internal_ProcessBackgroundActions();
     }
 
@@ -2406,11 +2406,30 @@ class BackgroundWorker{
     static void Init(){
       const char *progname[] = {"redis-server", "hello_world", "firefox"};
       std::cout << __progname << std::endl;
+      std::string release_rate_in_MB_str, drainCheckCycle_str;
+      size_t release_rate_in_MB, drainCheckCycle;
+
+      // read config from file
+      std::ifstream in_file;
+      try {
+        in_file.open ("tcmalloc_config.txt");
+        std::getline(in_file, release_rate_in_MB_str);
+        std::getline(in_file, drainCheckCycle_str);
+
+        release_rate_in_MB = std::stoi(release_rate_in_MB_str);
+        drainCheckCycle = std::stoi(drainCheckCycle_str);
+      }
+      catch (const std::ifstream::failure& e) {
+        std::cout << "tcmalloc_config.txt file not found\n";
+        release_rate_in_MB = 0;
+        drainCheckCycle = 0;
+      }
+
       for(const char *x: progname) {
         if(strcmp(__progname, x) == 0) {
           std::thread(write_stats_to_file).detach();
-          std::thread(background_subrelease).detach();
-          std::thread(background_drain_cpu, /*drainCheckCycle =*/0).detach();
+          std::thread(background_subrelease, release_rate_in_MB).detach();
+          std::thread(background_drain_cpu, drainCheckCycle).detach();
           break;
         }
       }
