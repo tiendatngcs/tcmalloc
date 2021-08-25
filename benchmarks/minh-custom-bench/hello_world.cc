@@ -113,7 +113,7 @@ static void producer(FILE *log, std::vector<size_t> sizeVec, std::vector<int> fr
     int n = sizeVec.size();
     char* ptr;
     for (int round = 0; round < LOOP_COUNT_PRODUCER; round++) {
-        mutexLock.lock();
+        // mutexLock.lock();
         // generate random class size and populate redis
         size_t sizeMalloc = myRand(sizeVec, freqVec, n);
 
@@ -122,7 +122,7 @@ static void producer(FILE *log, std::vector<size_t> sizeVec, std::vector<int> fr
         // strcpy(ptr,"abc");
         // printf("%p %s\n", ptr, (void *) ptr);
         sharedQueue.push(ptr);
-        mutexLock.unlock();
+        // mutexLock.unlock();
 
         time_t now = time(NULL);
         tm* tm_t = localtime(&now);
@@ -207,7 +207,7 @@ static void myBench(std::vector<bench_profile> profile, std::string testSuite, s
 }
 
 
-int main() {
+int main(int argc, char** argv) {
     std::vector<bench_profile> Beta = {
         {1, 1105.1490179533014, 1476.0622627267278},
         {2, 157.89933938068327, 291.72053371223052},
@@ -9741,11 +9741,23 @@ int main() {
         {15922538564, 3.7295341811807706e-06, 3.7262683285823413e-05},
     };
 
+
+    if (argc < 2) {
+        printf("Missing arguments!\n");
+        return 1;
+    }
+    
+    // args:
+    // 0: program name              3: profile name
+    // 1: benchmark                 4: drain cycle
+    // 2: release rate
+
     // initialize
-    std::string testSuite = "Producer-Consumer";
-    std::string releaseRate = "1MB";
-    std::string profileName = "Beta";
-    std::string drainCheckCycle = "0s";
+    // "Producer-Consumer" "0MB" "Beta" "5s"
+    std::string testSuite = argv[1];
+    std::string releaseRate = argv[2];
+    std::string profileName = argv[3];
+    std::string drainCheckCycle = argv[4];
 
     int PRODUCER_NUM = 1000;
     int CONSUMER_NUM = PRODUCER_NUM;
