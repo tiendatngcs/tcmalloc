@@ -1,5 +1,5 @@
 # this script will run the bench_profile in redis-custom-bench and minh-custom-bench
-BENCHMARK=("Producer-Consumer")
+BENCHMARK=("redis" "Producer-Consumer")
 RELEASE_RATE=("0MB" "1MB" "10MB")
 TEST_NAME=("SET")
 PROFILE_NAME=("Beta" "Bravo" "Charlie" "Delta" "Echo" "Foxtrot" "Merced" "Sierra" "Sigma" "Uniform")
@@ -43,6 +43,24 @@ do
         do
             for drain_cycle in "${DRAIN_CYCLE[@]}"
             do
+                # create config file
+                if [ $bench = "redis" ]
+                then
+                    cd $REDIS_SRC
+                else
+                    cd $PROD_CONS_BENCH_DIR
+                fi
+                CONFIG_FILE="tcmalloc_config.txt"
+                # check if file exists, if yes then remove
+                if [ -e $CONFIG_FILE ]
+                then
+                    rm -f $CONFIG_FILE
+                fi
+                touch $CONFIG_FILE
+                echo $release_rate >> $CONFIG_FILE
+                echo $drain_cycle >> $CONFIG_FILE
+
+                cd $CURRENT_DIR
                 run="$temp $profile $drain_cycle"
                 echo "Running: $bench $release_rate $test_name $profile $drain_cycle"
                 if [ $bench = "redis" ]
