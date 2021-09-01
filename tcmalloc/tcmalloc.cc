@@ -2369,7 +2369,7 @@ class BackgroundWorker{
     static void write_stats_to_file(){
       int count = 0;
       while (!Static::CPUCacheActive()){sleep(0.1);}
-      tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Writting Stats to File");
+      tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Writing Stats to File");
       if(std::filesystem::is_directory("stats"))
         std::filesystem::remove_all("stats");
       std::filesystem::create_directory("stats");
@@ -2418,6 +2418,7 @@ class BackgroundWorker{
 
         release_rate_in_MB = std::stoi(release_rate_in_MB_str);
         drainCheckCycle = std::stoi(drainCheckCycle_str);
+        in_file.close();
       }
       catch (const std::ifstream::failure& e) {
         std::cout << "tcmalloc_config.txt file not found\n";
