@@ -9748,7 +9748,41 @@ int main(int argc, char** argv) {
     // profiler
     std::thread(smem, testSuite, testName, releaseRate, profileName, drainCheckCycle).detach();
 
+    std::vector<bench_profile> profile;
+    if (profileName.compare("Beta") == 0){
+        printf("Using Beta Profile\n");
+        profile = Beta;
+    } else if (profileName.compare("Bravo") == 0){
+        printf("Using Bravo Profile\n");
+        profile = Bravo;
+    } else if (profileName.compare("Charlie") == 0){
+        printf("Using Charlie Profile\n");
+        profile = Charlie;
+    } else if (profileName.compare("Delta") == 0){
+        printf("Using Delta Profile\n");
+        profile = Delta;
+    } else if (profileName.compare("Echo") == 0){
+        printf("Using Echo Profile\n");
+        profile = Echo;
+    } else if (profileName.compare("Foxtrot") == 0){
+        printf("Using Foxtrot Profile\n");
+        profile = Foxtrot;
+    } else if (profileName.compare("Merced") == 0){
+        printf("Using Merced Profile\n");
+        profile = Merced;
+    } else if (profileName.compare("Sierra") == 0){
+        printf("Using Sierra Profile\n");
+        profile = Sierra;
+    } else if (profileName.compare("Sigma") == 0){
+        printf("Using Sigma Profile\n");
+        profile = Sigma;
+    } else{
+        // Uniform profile
+        printf("Using Uniform Profile\n");
+        profile = Uniform;
+    }
+
     // bench
-    benchRedis(Beta, testSuite, testName, releaseRate, profileName, drainCheckCycle);
+    benchRedis(profile, testSuite, testName, releaseRate, profileName, drainCheckCycle);
     return 0;
 }

@@ -2369,7 +2369,7 @@ class BackgroundWorker{
     static void write_stats_to_file(){
       int count = 0;
       while (!Static::CPUCacheActive()){
-        tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Waiting for CPU cache to be activated");
+        // tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Waiting for CPU cache to be activated");
         sleep(0.1);
       }
       tcmalloc::tcmalloc_internal::Log(tcmalloc::tcmalloc_internal::kLog, __FILE__, __LINE__, "Writing Stats to File");
