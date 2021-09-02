@@ -23,11 +23,11 @@ int PHASE_NUM = 5;
 int LOOP_COUNT_PRODUCER = 100;  // how many times a thread will allocate
 int PRODUCER_MIN_TIME = 1;      // the minimum sleep time of a producer thread
 int PRODUCER_MAX_TIME_UP_PHASE = 5;     // the maxinmum sleep time of a producer thread
-int PRODUCER_MAX_TIME_DOWN_PHASE = PRODUCER_MAX_TIME_UP_PHASE * 5;     // the maxinmum sleep time of a producer thread
+int PRODUCER_MAX_TIME_DOWN_PHASE = PRODUCER_MAX_TIME_UP_PHASE * 50;     // the maxinmum sleep time of a producer thread
 
 int LOOP_COUNT_CONSUMER = LOOP_COUNT_PRODUCER - 10; // how many times a thread will deallocate
 int CONSUMER_MIN_TIME = PRODUCER_MIN_TIME + 1;      // the minimum sleep time of a consumer thread
-int CONSUMER_MAX_TIME = PRODUCER_MAX_TIME_UP_PHASE * 2;     // the maxinmum sleep time of a consumer thread
+int CONSUMER_MAX_TIME = PRODUCER_MAX_TIME_UP_PHASE * 10;     // the maxinmum sleep time of a consumer thread
 
 struct bench_profile {
     // The units here actually don't matter so long as they're consistent
